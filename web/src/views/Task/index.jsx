@@ -28,7 +28,7 @@ export default function Task() {
     task_id: '',
     action: '',
     platform: '',
-    start_timestamp: 0,
+    start_timestamp: dayjs().startOf('day').unix(),
     end_timestamp: dayjs().unix() + 3600
   };
 

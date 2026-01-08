@@ -27,7 +27,7 @@ export default function Log() {
     p: 0,
     channel_id: '',
     mj_id: '',
-    start_timestamp: 0,
+    start_timestamp: dayjs().startOf('day').unix() * 1000,
     end_timestamp: dayjs().unix() * 1000 + 3600
   };
 

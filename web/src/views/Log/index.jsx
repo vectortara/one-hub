@@ -34,7 +34,7 @@ export default function Log() {
     username: '',
     token_name: '',
     model_name: '',
-    start_timestamp: dayjs().unix(),
+    start_timestamp: dayjs().startOf('day').unix(),
     end_timestamp: dayjs().unix() + 3600,
     log_type: '0',
     channel_id: '',

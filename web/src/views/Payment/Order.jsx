@@ -29,7 +29,7 @@ export default function Order() {
     trade_no: '',
     status: '',
     gateway_no: '',
-    start_timestamp: 0,
+    start_timestamp: dayjs().startOf('day').unix(),
     end_timestamp: dayjs().unix() + 3600
   };
 

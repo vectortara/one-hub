@@ -127,6 +127,7 @@ export default function Log() {
   const searchLogs = async () => {
     setPage(0);
     setSearchKeyword(toolBarValue);
+    setRefreshFlag(!refreshFlag);
   };
 
   const handleToolBarValue = (event) => {

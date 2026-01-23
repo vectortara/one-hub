@@ -51,8 +51,8 @@ const Dashboard = () => {
 
   const [dashboardData, setDashboardData] = useState(null);
   const [dateRange, setDateRange] = useState({
-    start: dayjs(getLastSevenDays()[0]),
-    end: dayjs(getLastSevenDays()[6])
+    start: dayjs().startOf('day'),
+    end: dayjs().endOf('day')
   });
   const siteInfo = useSelector((state) => state.siteInfo);
 

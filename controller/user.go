@@ -242,6 +242,50 @@ const API_LIMIT_KEY = "api-limiter:%d"
 
 func GetRateRealtime(c *gin.Context) {
 	id := c.GetInt("id")
+	role := c.GetInt("role")
+
+	// 如果是root用户，返回今天所有用户的统计数据
+	if role == config.RoleRootUser {
+		stats, err := model.GetTodayAllStatistics()
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
+		}
+
+		maxRPM, err := model.GetAllUsersMaxRPMSum()
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
+		}
+
+		var usageRpmRate float64 = 0
+		if maxRPM > 0 {
+			usageRpmRate = math.Floor(float64(stats.RequestCount)/float64(maxRPM)*100*100) / 100
+		}
+
+		data := map[string]interface{}{
+			"rpm":          stats.RequestCount,
+			"maxRPM":       maxRPM,
+			"usageRpmRate": usageRpmRate,
+			"tpm":          stats.PromptTokens + stats.CompletionTokens,
+			"maxTPM":       0,
+			"usageTpmRate": 0,
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "",
+			"data":    data,
+		})
+		return
+	}
+
+	// 普通用户返回个人的实时RPM数据
 	user, err := model.GetUserById(id, false)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -284,6 +328,7 @@ func GetRateRealtime(c *gin.Context) {
 
 func GetUserDashboard(c *gin.Context) {
 	id := c.GetInt("id")
+	role := c.GetInt("role")
 
 	now := time.Now()
 	toDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
@@ -305,7 +350,16 @@ func GetUserDashboard(c *gin.Context) {
 		endOfDay = toDay.Add(-time.Second).Add(time.Hour * 24).Format("2006-01-02")
 	}
 
-	dashboards, err := model.GetUserModelStatisticsByPeriod(id, startOfDay, endOfDay)
+	var dashboards []*model.LogStatisticGroupModel
+	var err error
+
+	// 如果是root用户，返回所有用户的聚合数据
+	if role == config.RoleRootUser {
+		dashboards, err = model.GetAllModelStatisticsByPeriod(startOfDay, endOfDay)
+	} else {
+		dashboards, err = model.GetUserModelStatisticsByPeriod(id, startOfDay, endOfDay)
+	}
+
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,

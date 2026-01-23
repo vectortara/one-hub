@@ -44,6 +44,60 @@ func GetUserModelStatisticsByPeriod(userId int, startTime, endTime string) (LogS
 	return
 }
 
+// GetAllModelStatisticsByPeriod 获取所有用户的聚合统计数据（供root用户查看全局数据）
+func GetAllModelStatisticsByPeriod(startTime, endTime string) (LogStatistic []*LogStatisticGroupModel, err error) {
+	dateStr := "date"
+	if common.UsingPostgreSQL {
+		dateStr = "TO_CHAR(date, 'YYYY-MM-DD') as date"
+	} else if common.UsingSQLite {
+		dateStr = "strftime('%Y-%m-%d', date) as date"
+	}
+
+	err = DB.Raw(`
+		SELECT `+dateStr+`,
+		model_name, 
+		sum(request_count) as request_count,
+		sum(quota) as quota,
+		sum(prompt_tokens) as prompt_tokens,
+		sum(completion_tokens) as completion_tokens,
+		sum(request_time) as request_time
+		FROM statistics
+		WHERE date BETWEEN ? AND ?
+		GROUP BY date, model_name
+		ORDER BY date, model_name
+	`, startTime, endTime).Scan(&LogStatistic).Error
+	return
+}
+
+// TodayStatistics 今日统计数据结构
+type TodayStatistics struct {
+	RequestCount     int64 `gorm:"column:request_count"`
+	Quota            int64 `gorm:"column:quota"`
+	PromptTokens     int64 `gorm:"column:prompt_tokens"`
+	CompletionTokens int64 `gorm:"column:completion_tokens"`
+}
+
+// GetTodayAllStatistics 获取今天所有用户的聚合统计数据（供root用户RPM展示）
+func GetTodayAllStatistics() (*TodayStatistics, error) {
+	today := time.Now().Format("2006-01-02")
+
+	var stats TodayStatistics
+	err := DB.Raw(`
+		SELECT 
+		COALESCE(sum(request_count), 0) as request_count,
+		COALESCE(sum(quota), 0) as quota,
+		COALESCE(sum(prompt_tokens), 0) as prompt_tokens,
+		COALESCE(sum(completion_tokens), 0) as completion_tokens
+		FROM statistics
+		WHERE date = ?
+	`, today).Scan(&stats).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return &stats, nil
+}
+
 type MultiUserStatistic struct {
 	Username         string `gorm:"column:username" json:"username"`
 	ModelName        string `gorm:"column:model_name" json:"model_name"`

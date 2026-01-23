@@ -679,3 +679,36 @@ func GetUserByWebAuthnCredentialId(credentialId []byte) (*User, error) {
 	}
 	return GetUserById(cred.UserId, false)
 }
+
+// UserGroupCount 用户组用户数统计结构
+type UserGroupCount struct {
+	Group     string `gorm:"column:group"`
+	UserCount int64  `gorm:"column:user_count"`
+}
+
+// GetAllUsersMaxRPMSum 计算所有用户 maxRPM 的总和
+// 总 maxRPM = SUM(每个用户组的用户数 × 该用户组的 APIRate)
+func GetAllUsersMaxRPMSum() (int64, error) {
+	var groupCounts []UserGroupCount
+
+	// 统计每个用户组有多少用户
+	err := DB.Raw(`
+		SELECT ` + "`group`" + `, COUNT(*) as user_count 
+		FROM users 
+		WHERE status = ?
+		GROUP BY ` + "`group`" + `
+	`, config.UserStatusEnabled).Scan(&groupCounts).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	var totalMaxRPM int64 = 0
+	for _, gc := range groupCounts {
+		// 获取该用户组的 APIRate
+		apiRate := GlobalUserGroupRatio.GetAPIRate(gc.Group)
+		totalMaxRPM += gc.UserCount * int64(apiRate)
+	}
+
+	return totalMaxRPM, nil
+}

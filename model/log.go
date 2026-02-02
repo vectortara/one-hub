@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"one-api/common/config"
+	"one-api/common/limit"
 	"one-api/common/logger"
 	"one-api/common/utils"
 
@@ -128,6 +129,12 @@ func RecordConsumeLog(
 		if err != nil {
 			logger.LogError(ctx, "failed to record log: "+err.Error())
 		}
+	}
+
+	// 记录 TPM 到 Redis（用户 + 全局，同步调用）
+	totalTokens := promptTokens + completionTokens
+	if totalTokens > 0 {
+		limit.RecordTPM(userId, totalTokens)
 	}
 }
 

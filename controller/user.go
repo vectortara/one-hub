@@ -267,11 +267,14 @@ func GetRateRealtime(c *gin.Context) {
 		usageRpmRate = math.Floor(float64(rpm)/float64(maxRPM)*100*100) / 100
 	}
 
+	// 获取实时 TPM
+	tpm, _ := limit.GetCurrentTPM(id)
+
 	data := map[string]interface{}{
 		"rpm":          rpm,
 		"maxRPM":       maxRPM,
 		"usageRpmRate": usageRpmRate,
-		"tpm":          0,
+		"tpm":          tpm,
 		"maxTPM":       0,
 		"usageTpmRate": 0,
 	}

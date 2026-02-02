@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"one-api/common/limit"
 	"one-api/model"
 	"time"
 
@@ -33,6 +34,9 @@ func DynamicRedisRateLimiter() gin.HandlerFunc {
 			abortWithMessage(c, http.StatusTooManyRequests, RATE_LIMIT_EXCEEDED_MSG)
 			return
 		}
+
+		// 更新全局 RPM 计数器（同步调用，Redis 操作很快）
+		limit.IncrGlobalRPM()
 
 		c.Next()
 	}

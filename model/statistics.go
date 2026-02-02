@@ -301,3 +301,133 @@ func UpdateStatistics(updateType StatisticsUpdateType) error {
 	err := DB.Exec(fmt.Sprintf(sql, sqlPrefix, sqlDate, sqlWhere, sqlSuffix)).Error
 	return err
 }
+
+// TodayStatistics 今日统计数据结构
+type TodayStatistics struct {
+	RequestCount     int64 `gorm:"column:request_count" json:"request_count"`
+	Quota            int64 `gorm:"column:quota" json:"quota"`
+	PromptTokens     int64 `gorm:"column:prompt_tokens" json:"prompt_tokens"`
+	CompletionTokens int64 `gorm:"column:completion_tokens" json:"completion_tokens"`
+}
+
+// GetAnalyticsSummaryStatistics 获取分析页面的汇总统计数据
+// userId = 0 时获取所有用户汇总数据，userId > 0 时获取指定用户数据
+func GetAnalyticsSummaryStatistics(userId int, startTime, endTime string) (LogStatistic []*LogStatisticGroupModel, err error) {
+	dateStr := "date"
+	if common.UsingPostgreSQL {
+		dateStr = "TO_CHAR(date, 'YYYY-MM-DD') as date"
+	} else if common.UsingSQLite {
+		dateStr = "strftime('%Y-%m-%d', date) as date"
+	}
+
+	var whereClause strings.Builder
+	whereClause.WriteString("WHERE date BETWEEN ? AND ?")
+	args := []interface{}{startTime, endTime}
+
+	if userId > 0 {
+		whereClause.WriteString(" AND user_id = ?")
+		args = append(args, userId)
+	}
+
+	sql := `
+		SELECT ` + dateStr + `,
+		model_name, 
+		sum(request_count) as request_count,
+		sum(quota) as quota,
+		sum(prompt_tokens) as prompt_tokens,
+		sum(completion_tokens) as completion_tokens,
+		sum(request_time) as request_time
+		FROM statistics
+		%s
+		GROUP BY date, model_name
+		ORDER BY date, model_name
+	`
+
+	sql = fmt.Sprintf(sql, whereClause.String())
+	err = DB.Raw(sql, args...).Scan(&LogStatistic).Error
+	return
+}
+
+// GetTodayStatistics 获取今日统计数据
+// userId = 0 时获取今日所有用户统计，userId > 0 时获取指定用户今日统计
+func GetTodayStatistics(userId int) (*TodayStatistics, error) {
+	today := time.Now().Format("2006-01-02")
+
+	var whereClause strings.Builder
+	whereClause.WriteString("WHERE date = ?")
+	args := []interface{}{today}
+
+	if userId > 0 {
+		whereClause.WriteString(" AND user_id = ?")
+		args = append(args, userId)
+	}
+
+	sql := `
+		SELECT 
+		COALESCE(sum(request_count), 0) as request_count,
+		COALESCE(sum(quota), 0) as quota,
+		COALESCE(sum(prompt_tokens), 0) as prompt_tokens,
+		COALESCE(sum(completion_tokens), 0) as completion_tokens
+		FROM statistics
+		%s
+	`
+
+	sql = fmt.Sprintf(sql, whereClause.String())
+
+	var stats TodayStatistics
+	err := DB.Raw(sql, args...).Scan(&stats).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &stats, nil
+}
+
+// Top5UserQuotaStatistic Top5用户消费统计
+type Top5UserQuotaStatistic struct {
+	UserId   int    `gorm:"column:user_id" json:"user_id"`
+	Username string `gorm:"column:username" json:"username"`
+	Date     string `gorm:"column:date" json:"date"`
+	Quota    int64  `gorm:"column:quota" json:"quota"`
+}
+
+// GetTop5UserQuotaStatisticsByPeriod 获取消费金额Top5用户的按日统计
+func GetTop5UserQuotaStatisticsByPeriod(startTime, endTime string) ([]*Top5UserQuotaStatistic, error) {
+	var statistics []*Top5UserQuotaStatistic
+
+	// 日期格式化（兼容多数据库）
+	dateStr := "s.date"
+	if common.UsingPostgreSQL {
+		dateStr = "TO_CHAR(s.date, 'YYYY-MM-DD') as date"
+	} else if common.UsingSQLite {
+		dateStr = "strftime('%Y-%m-%d', s.date) as date"
+	}
+
+	// 一次查询：子查询获取Top5用户ID，主查询获取按日数据
+	sql := `
+		SELECT ` + dateStr + `,
+			s.user_id,
+			u.username,
+			SUM(s.quota) as quota
+		FROM statistics s
+		JOIN users u ON s.user_id = u.id
+		WHERE s.user_id IN (
+			SELECT user_id
+			FROM statistics
+			WHERE date BETWEEN ? AND ?
+			GROUP BY user_id
+			ORDER BY SUM(quota) DESC
+			LIMIT 5
+		)
+		AND s.date BETWEEN ? AND ?
+		GROUP BY s.date, s.user_id, u.username
+		ORDER BY s.date, quota DESC
+	`
+
+	err := DB.Raw(sql, startTime, endTime, startTime, endTime).Scan(&statistics).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return statistics, nil
+}

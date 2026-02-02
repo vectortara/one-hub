@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"one-api/common/limit"
 	"one-api/model"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -37,10 +36,6 @@ func DynamicRedisRateLimiter() gin.HandlerFunc {
 		}
 
 		// 更新全局 RPM 计数器（同步调用，Redis 操作很快）
-		// #region agent log
-		debugLog := fmt.Sprintf(`{"location":"api-limit.go:DynamicRedisRateLimiter","message":"Before IncrGlobalRPM","data":{"path":"%s","method":"%s","userID":%d},"timestamp":%d,"sessionId":"debug-session","hypothesisId":"A,D"}`, c.Request.URL.Path, c.Request.Method, userID, time.Now().UnixMilli())
-		if f, err := os.OpenFile("/Users/yukig/GolandProjects/one-hub/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil { f.WriteString(debugLog + "\n"); f.Close() }
-		// #endregion
 		limit.IncrGlobalRPM()
 
 		c.Next()

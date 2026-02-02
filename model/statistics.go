@@ -404,6 +404,7 @@ func GetTop5UserQuotaStatisticsByPeriod(startTime, endTime string) ([]*Top5UserQ
 	}
 
 	// 一次查询：子查询获取Top5用户ID，主查询获取按日数据
+	// 注意：MySQL 不支持 IN 子查询中直接使用 LIMIT，需要用派生表包装一层
 	sql := `
 		SELECT ` + dateStr + `,
 			s.user_id,
@@ -412,12 +413,14 @@ func GetTop5UserQuotaStatisticsByPeriod(startTime, endTime string) ([]*Top5UserQ
 		FROM statistics s
 		JOIN users u ON s.user_id = u.id
 		WHERE s.user_id IN (
-			SELECT user_id
-			FROM statistics
-			WHERE date BETWEEN ? AND ?
-			GROUP BY user_id
-			ORDER BY SUM(quota) DESC
-			LIMIT 5
+			SELECT user_id FROM (
+				SELECT user_id
+				FROM statistics
+				WHERE date BETWEEN ? AND ?
+				GROUP BY user_id
+				ORDER BY SUM(quota) DESC
+				LIMIT 5
+			) AS top5
 		)
 		AND s.date BETWEEN ? AND ?
 		GROUP BY s.date, s.user_id, u.username

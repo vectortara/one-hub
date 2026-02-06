@@ -2,15 +2,12 @@ package stmp
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"one-api/common"
 	"one-api/common/config"
-	"one-api/common/logger"
 	"one-api/common/utils"
 	"strings"
-	"time"
 
 	"github.com/wneessen/go-mail"
 )
@@ -59,23 +56,6 @@ func (s *StmpConfig) Send(to, subject, body string) error {
 	)
 
 	if err != nil {
-		// #region agent log
-		debugPayload := map[string]any{
-			"sessionId":    "debug-session",
-			"runId":        "pre-fix",
-			"hypothesisId": "F",
-			"location":     "common/stmp/email.go:Send",
-			"message":      "smtp client create failed",
-			"data": map[string]any{
-				"port": s.Port,
-				"err":  err.Error(),
-			},
-			"timestamp": time.Now().UnixMilli(),
-		}
-		if bytes, err := json.Marshal(debugPayload); err == nil {
-			logger.SysLog(string(bytes))
-		}
-		// #endregion
 		return err
 	}
 
@@ -88,42 +68,9 @@ func (s *StmpConfig) Send(to, subject, body string) error {
 	}
 
 	if err := DialAndSend(client, message); err != nil {
-		// #region agent log
-		debugPayload := map[string]any{
-			"sessionId":    "debug-session",
-			"runId":        "pre-fix",
-			"hypothesisId": "F",
-			"location":     "common/stmp/email.go:Send",
-			"message":      "smtp send failed",
-			"data": map[string]any{
-				"port": s.Port,
-				"err":  err.Error(),
-			},
-			"timestamp": time.Now().UnixMilli(),
-		}
-		if bytes, err := json.Marshal(debugPayload); err == nil {
-			logger.SysLog(string(bytes))
-		}
-		// #endregion
 		return err
 	}
 
-	// #region agent log
-	debugPayload := map[string]any{
-		"sessionId":    "debug-session",
-		"runId":        "pre-fix",
-		"hypothesisId": "F",
-		"location":     "common/stmp/email.go:Send",
-		"message":      "smtp send ok",
-		"data": map[string]any{
-			"port": s.Port,
-		},
-		"timestamp": time.Now().UnixMilli(),
-	}
-	if bytes, err := json.Marshal(debugPayload); err == nil {
-		logger.SysLog(string(bytes))
-	}
-	// #endregion
 	return nil
 }
 
@@ -139,26 +86,6 @@ func (s *StmpConfig) Render(to, subject, content string) error {
 }
 
 func GetSystemStmp() (*StmpConfig, error) {
-	// #region agent log
-	debugPayload := map[string]any{
-		"sessionId":    "debug-session",
-		"runId":        "pre-fix",
-		"hypothesisId": "E",
-		"location":     "common/stmp/email.go:GetSystemStmp",
-		"message":      "smtp config check",
-		"data": map[string]any{
-			"hostPresent":    config.SMTPServer != "",
-			"port":           config.SMTPPort,
-			"accountPresent": config.SMTPAccount != "",
-			"fromPresent":    config.SMTPFrom != "",
-			"tokenPresent":   config.SMTPToken != "",
-		},
-		"timestamp": time.Now().UnixMilli(),
-	}
-	if bytes, err := json.Marshal(debugPayload); err == nil {
-		logger.SysLog(string(bytes))
-	}
-	// #endregion
 	if config.SMTPServer == "" || config.SMTPPort == 0 || config.SMTPAccount == "" || config.SMTPToken == "" {
 		return nil, fmt.Errorf("SMTP 信息未配置")
 	}

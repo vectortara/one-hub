@@ -1,8 +1,10 @@
 package model
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"one-api/common"
 	"one-api/common/config"
 	"one-api/common/database"
@@ -10,6 +12,7 @@ import (
 	"one-api/common/redis"
 	"one-api/common/stmp"
 	"one-api/common/utils"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -22,6 +25,30 @@ var (
 	ErrTokenInvalid           = errors.New("无效的令牌")
 	ErrTokenQuotaGet          = errors.New("获取令牌额度失败")
 )
+
+// #region agent log
+func debugQuotaWarnLog(location, message, hypothesisId string, data map[string]any) {
+	payload := map[string]any{
+		"sessionId":    "debug-session",
+		"runId":        "pre-fix",
+		"hypothesisId": hypothesisId,
+		"location":     location,
+		"message":      message,
+		"data":         data,
+		"timestamp":    time.Now().UnixMilli(),
+	}
+	bytes, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	file, err := os.OpenFile("/Users/yukig/GolandProjects/one-hub/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return
+	}
+	_, _ = file.Write(append(bytes, '\n'))
+	_ = file.Close()
+}
+// #endregion
 
 type Token struct {
 	Id             int            `json:"id"`
@@ -418,11 +445,38 @@ func PreConsumeTokenQuota(tokenId int, quota int) (err error) {
 	if err != nil {
 		return err
 	}
+	// #region agent log
+	debugQuotaWarnLog(
+		"model/token.go:PreConsumeTokenQuota",
+		"user quota fetched",
+		"A",
+		map[string]any{
+			"tokenId":   tokenId,
+			"userId":    token.UserId,
+			"quota":     quota,
+			"userQuota": userQuota,
+			"threshold": config.QuotaRemindThreshold,
+		},
+	)
+	// #endregion
 	if userQuota < quota {
 		return errors.New("用户额度不足")
 	}
 	quotaTooLow := userQuota >= config.QuotaRemindThreshold && userQuota-quota < config.QuotaRemindThreshold
 	noMoreQuota := userQuota-quota <= 0
+	// #region agent log
+	debugQuotaWarnLog(
+		"model/token.go:PreConsumeTokenQuota",
+		"quota warning check",
+		"B",
+		map[string]any{
+			"quotaTooLow": quotaTooLow,
+			"noMoreQuota": noMoreQuota,
+			"userQuota":   userQuota,
+			"quota":       quota,
+		},
+	)
+	// #endregion
 	if quotaTooLow || noMoreQuota {
 		go sendQuotaWarningEmail(token.UserId, userQuota, noMoreQuota)
 	}
@@ -440,11 +494,32 @@ func sendQuotaWarningEmail(userId int, userQuota int, noMoreQuota bool) {
 	user := User{Id: userId}
 
 	if err := user.FillUserById(); err != nil {
+		// #region agent log
+		debugQuotaWarnLog(
+			"model/token.go:sendQuotaWarningEmail",
+			"fill user failed",
+			"C",
+			map[string]any{
+				"userId": userId,
+				"err":    err.Error(),
+			},
+		)
+		// #endregion
 		logger.SysError("failed to fetch user email: " + err.Error())
 		return
 	}
 
 	if user.Email == "" {
+		// #region agent log
+		debugQuotaWarnLog(
+			"model/token.go:sendQuotaWarningEmail",
+			"user email empty",
+			"C",
+			map[string]any{
+				"userId": userId,
+			},
+		)
+		// #endregion
 		logger.SysError("user email is empty")
 		return
 	}
@@ -454,9 +529,33 @@ func sendQuotaWarningEmail(userId int, userQuota int, noMoreQuota bool) {
 		userName = user.Username
 	}
 
+	// #region agent log
+	debugQuotaWarnLog(
+		"model/token.go:sendQuotaWarningEmail",
+		"send quota warning email",
+		"D",
+		map[string]any{
+			"userId":      userId,
+			"emailPresent": user.Email != "",
+			"userQuota":   userQuota,
+			"noMoreQuota": noMoreQuota,
+		},
+	)
+	// #endregion
 	err := stmp.SendQuotaWarningCodeEmail(userName, user.Email, userQuota, noMoreQuota)
 
 	if err != nil {
+		// #region agent log
+		debugQuotaWarnLog(
+			"model/token.go:sendQuotaWarningEmail",
+			"send quota warning email failed",
+			"D",
+			map[string]any{
+				"userId": userId,
+				"err":    err.Error(),
+			},
+		)
+		// #endregion
 		logger.SysError("failed to send email" + err.Error())
 	}
 }

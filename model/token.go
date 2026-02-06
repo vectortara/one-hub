@@ -1,9 +1,11 @@
 package model
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"one-api/common"
 	"one-api/common/config"
 	"one-api/common/database"
@@ -11,7 +13,6 @@ import (
 	"one-api/common/redis"
 	"one-api/common/stmp"
 	"one-api/common/utils"
-	"os"
 	"time"
 
 	"gorm.io/gorm"
@@ -37,16 +38,22 @@ func debugQuotaWarnLog(location, message, hypothesisId string, data map[string]a
 		"data":         data,
 		"timestamp":    time.Now().UnixMilli(),
 	}
-	bytes, err := json.Marshal(payload)
+	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
 		return
 	}
-	file, err := os.OpenFile("/Users/yukig/GolandProjects/one-hub/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	logger.SysLog(string(payloadBytes))
+	req, err := http.NewRequest(
+		http.MethodPost,
+		"http://127.0.0.1:7242/ingest/245f1ea0-68e1-47ce-bb1a-bd62ea35083e",
+		bytes.NewBuffer(payloadBytes),
+	)
 	if err != nil {
 		return
 	}
-	_, _ = file.Write(append(bytes, '\n'))
-	_ = file.Close()
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{Timeout: 2 * time.Second}
+	_, _ = client.Do(req)
 }
 
 // #endregion

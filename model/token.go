@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"one-api/common"
 	"one-api/common/config"
 	"one-api/common/database"
@@ -12,6 +11,7 @@ import (
 	"one-api/common/redis"
 	"one-api/common/stmp"
 	"one-api/common/utils"
+	"os"
 	"time"
 
 	"gorm.io/gorm"
@@ -48,6 +48,7 @@ func debugQuotaWarnLog(location, message, hypothesisId string, data map[string]a
 	_, _ = file.Write(append(bytes, '\n'))
 	_ = file.Close()
 }
+
 // #endregion
 
 type Token struct {
@@ -535,10 +536,10 @@ func sendQuotaWarningEmail(userId int, userQuota int, noMoreQuota bool) {
 		"send quota warning email",
 		"D",
 		map[string]any{
-			"userId":      userId,
+			"userId":       userId,
 			"emailPresent": user.Email != "",
-			"userQuota":   userQuota,
-			"noMoreQuota": noMoreQuota,
+			"userQuota":    userQuota,
+			"noMoreQuota":  noMoreQuota,
 		},
 	)
 	// #endregion

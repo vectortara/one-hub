@@ -175,11 +175,11 @@ export default function Overview() {
         
         // 汇总每天的数据
         data.forEach(item => {
-          const dateKey = item.date;
+          const dateKey = item.Date;
           if (dailyData[dateKey]) {
-            dailyData[dateKey].requestCount += item.request_count || 0;
-            dailyData[dateKey].quota += item.quota || 0;
-            dailyData[dateKey].tokens += (item.prompt_tokens || 0) + (item.completion_tokens || 0);
+            dailyData[dateKey].requestCount += item.RequestCount || 0;
+            dailyData[dateKey].quota += item.Quota || 0;
+            dailyData[dateKey].tokens += (item.PromptTokens || 0) + (item.CompletionTokens || 0);
           }
         });
         

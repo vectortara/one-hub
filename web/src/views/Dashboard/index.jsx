@@ -360,9 +360,9 @@ function getLineCardOption(lineDataGroup, field) {
   });
 
   // 获取今天和昨天的数据
-  if (lineData.length > 1) {
+  if (lineData.length >= 1) {
     todayValue = lineData[lineData.length - 1].y;
-    if (lineData.length > 2) {
+    if (lineData.length >= 2) {
       lastDayValue = lineData[lineData.length - 2].y;
     }
   }

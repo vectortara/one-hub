@@ -45,6 +45,7 @@ type ErrorLogInfo struct {
 var allowedErrorLogsOrderFields = map[string]bool{
 	"created_at":  true,
 	"channel_id":  true,
+	"user_id":     true,
 	"token_name":  true,
 	"model_name":  true,
 	"source_ip":   true,

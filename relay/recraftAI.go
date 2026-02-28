@@ -49,7 +49,7 @@ func RelayRecraftAI(c *gin.Context) {
 	}
 
 	channel := recraftProvider.GetChannel()
-	go processChannelRelayError(c.Request.Context(), channel.Id, channel.Name, apiErr, channel.Type)
+	go processChannelRelayError(c.Request.Context(), channel.Id, channel.Name, apiErr, channel.Type, buildErrorLogInfo(c))
 
 	retryTimes := config.RetryTimes
 	if !shouldRetry(c, apiErr, channel.Type) {
@@ -76,7 +76,7 @@ func RelayRecraftAI(c *gin.Context) {
 			return
 		}
 
-		go processChannelRelayError(c.Request.Context(), channel.Id, channel.Name, apiErr, channel.Type)
+		go processChannelRelayError(c.Request.Context(), channel.Id, channel.Name, apiErr, channel.Type, buildErrorLogInfo(c))
 		if !shouldRetry(c, apiErr, channel.Type) {
 			break
 		}

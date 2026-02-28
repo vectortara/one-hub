@@ -64,7 +64,11 @@ function requestTSLabelOptions(request_ts) {
   return color;
 }
 
-export default function LogTableRow({ item, userIsAdmin, userGroup, columnVisibility }) {
+export default function LogTableRow({ item, userIsAdmin, userGroup, columnVisibility, isErrorLog = false }) {
+  if (isErrorLog) {
+    return <ErrorLogRow item={item} userIsAdmin={userIsAdmin} columnVisibility={columnVisibility} />;
+  }
+
   const { t } = useTranslation();
   const LogType = useLogType();
   let request_time = item.request_time / 1000;
@@ -202,8 +206,76 @@ LogTableRow.propTypes = {
   item: PropTypes.object,
   userIsAdmin: PropTypes.bool,
   userGroup: PropTypes.object,
-  columnVisibility: PropTypes.object
+  columnVisibility: PropTypes.object,
+  isErrorLog: PropTypes.bool
 };
+
+function statusCodeColor(statusCode) {
+  if (statusCode >= 500) return 'error';
+  if (statusCode >= 400) return 'warning';
+  return 'success';
+}
+
+function ErrorLogRow({ item, userIsAdmin, columnVisibility }) {
+  const { t } = useTranslation();
+  let request_time = item.request_time / 1000;
+  let request_time_str = request_time.toFixed(2) + ' S';
+
+  return (
+    <TableRow tabIndex={item.id}>
+      {columnVisibility.created_at && <TableCell sx={{ p: '10px 8px' }}>{timestamp2string(item.created_at)}</TableCell>}
+      {userIsAdmin && columnVisibility.channel_id && (
+        <TableCell sx={{ p: '10px 8px' }}>
+          {(item.channel_id || '') + ' ' + (item.channel?.name ? '(' + item.channel.name + ')' : '')}
+        </TableCell>
+      )}
+      {userIsAdmin && columnVisibility.user_id && (
+        <TableCell sx={{ p: '10px 8px' }}>
+          <Label color="default" variant="outlined" copyText={item.username}>
+            {item.username}
+          </Label>
+        </TableCell>
+      )}
+      {columnVisibility.token_name && (
+        <TableCell sx={{ p: '10px 8px' }}>
+          {item.token_name && (
+            <Label color="default" variant="soft" copyText={item.token_name}>
+              {item.token_name}
+            </Label>
+          )}
+        </TableCell>
+      )}
+      {columnVisibility.model_name && <TableCell sx={{ p: '10px 8px' }}>{viewModelName(item.model_name, item.is_stream)}</TableCell>}
+      {columnVisibility.request_time && (
+        <TableCell sx={{ p: '10px 8px' }}>
+          <Label color={requestTimeLabelOptions(request_time)}>
+            {item.request_time === 0 ? '无' : request_time_str}
+          </Label>
+        </TableCell>
+      )}
+      {columnVisibility.status_code && (
+        <TableCell sx={{ p: '10px 8px' }}>
+          <Label color={statusCodeColor(item.status_code)} variant="filled">
+            {item.status_code}
+          </Label>
+        </TableCell>
+      )}
+      {columnVisibility.error_code && <TableCell sx={{ p: '10px 8px' }}>{item.error_code || ''}</TableCell>}
+      {columnVisibility.error_type && <TableCell sx={{ p: '10px 8px' }}>{item.error_type || ''}</TableCell>}
+      {columnVisibility.request_path && <TableCell sx={{ p: '10px 8px' }}>{item.request_path || ''}</TableCell>}
+      {columnVisibility.source_ip && <TableCell sx={{ p: '10px 8px' }}>{item.source_ip || ''}</TableCell>}
+      {columnVisibility.content && (
+        <TableCell sx={{ p: '10px 8px', maxWidth: 300 }}>
+          <Tooltip title={item.content || ''} placement="top">
+            <Typography variant="body2" noWrap>
+              {item.content || ''}
+            </Typography>
+          </Tooltip>
+        </TableCell>
+      )}
+    </TableRow>
+  );
+}
 
 function viewModelName(model_name, isStream) {
   if (!model_name) {

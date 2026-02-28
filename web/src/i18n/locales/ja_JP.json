@@ -430,12 +430,18 @@
     "typeLabel": "タイプ",
     "userLabel": "ユーザー",
     "sourceIp": "Source IP",
+    "statusCode": "ステータスコード",
+    "errorCode": "エラーコード",
+    "errorType": "エラータイプ",
+    "requestPath": "リクエストパス",
+    "errorContent": "エラー内容",
     "logType": {
       "all": "すべて",
       "recharge": "チャージ",
       "consumption": "消費",
       "management": "管理",
-      "system": "システム"
+      "system": "システム",
+      "error": "エラー"
     },
     "content": {
       "calculate_steps": "計算手順:",

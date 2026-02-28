@@ -453,13 +453,19 @@
     "typeLabel": "Type",
     "userLabel": "User",
     "sourceIp": "Source IP",
+    "statusCode": "Status Code",
+    "errorCode": "Error Code",
+    "errorType": "Error Type",
+    "requestPath": "Request Path",
+    "errorContent": "Error Content",
     "unknown": "Unknown",
     "logType": {
       "all": "All",
       "recharge": "Recharge",
       "consumption": "Consumption",
       "management": "Management",
-      "system": "System"
+      "system": "System",
+      "error": "Error"
     },
     "content": {
       "calculate_steps": "Calculation steps:",

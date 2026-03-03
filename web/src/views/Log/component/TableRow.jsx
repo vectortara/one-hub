@@ -217,7 +217,6 @@ function statusCodeColor(statusCode) {
 }
 
 function ErrorLogRow({ item, userIsAdmin, columnVisibility }) {
-  const { t } = useTranslation();
   let request_time = item.request_time / 1000;
   let request_time_str = request_time.toFixed(2) + ' S';
 

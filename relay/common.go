@@ -544,10 +544,30 @@ func shouldRetryBadRequest(channelType int, apiErr *types.OpenAIErrorWithStatusC
 	}
 }
 
-func processChannelRelayError(ctx context.Context, channelId int, channelName string, err *types.OpenAIErrorWithStatusCode, channelType int) {
+func buildErrorLogInfo(c *gin.Context) *model.ErrorLogInfo {
+	requestTime := 0
+	if startTime := c.GetTime("requestStartTime"); !startTime.IsZero() {
+		requestTime = int(time.Since(startTime).Milliseconds())
+	}
+	return &model.ErrorLogInfo{
+		UserId:      c.GetInt("id"),
+		Username:    c.GetString("username"),
+		TokenName:   c.GetString("token_name"),
+		ModelName:   c.GetString("original_model"),
+		SourceIp:    c.ClientIP(),
+		RequestPath: c.Request.URL.Path,
+		IsStream:    c.GetBool("is_stream"),
+		RequestTime: requestTime,
+	}
+}
+
+func processChannelRelayError(ctx context.Context, channelId int, channelName string, err *types.OpenAIErrorWithStatusCode, channelType int, info *model.ErrorLogInfo) {
 	logger.LogError(ctx, fmt.Sprintf("relay error (channel #%d(%s)): %s", channelId, channelName, err.Message))
 	if controller.ShouldDisableChannel(channelType, err) {
 		controller.DisableChannel(channelId, channelName, err.Message, true)
+	}
+	if config.ErrorLogEnabled && info != nil && model.ShouldRecordErrorLog(err) {
+		model.RecordErrorLog(channelId, err, info)
 	}
 }
 

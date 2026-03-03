@@ -22,9 +22,13 @@ const getLogTypeWithTranslation = (translationFunc) => {
 };
 
 // Hook to get log types with translations
-export const useLogType = () => {
+export const useLogType = (isAdmin = false) => {
   const { t } = useTranslation();
-  return getLogTypeWithTranslation(t);
+  const types = getLogTypeWithTranslation(t);
+  if (isAdmin) {
+    types[5] = { value: '5', text: t('logPage.logType.error'), color: 'error' };
+  }
+  return types;
 };
 
 // Default export for backward compatibility

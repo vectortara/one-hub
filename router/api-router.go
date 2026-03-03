@@ -217,6 +217,13 @@ func SetApiRouter(router *gin.Engine) {
 		// logRoute.GET("/search", middleware.AdminAuth(), controller.SearchAllLogs)
 		logRoute.GET("/self", middleware.UserAuth(), controller.GetUserLogsList)
 		// logRoute.GET("/self/search", middleware.UserAuth(), controller.SearchUserLogs)
+
+		errorLogRoute := apiRouter.Group("/error_log")
+		errorLogRoute.Use(middleware.AdminAuth())
+		{
+			errorLogRoute.GET("/", controller.GetErrorLogsList)
+			errorLogRoute.DELETE("/", controller.DeleteHistoryErrorLogs)
+		}
 		groupRoute := apiRouter.Group("/group")
 		groupRoute.Use(middleware.AdminAuth())
 		{

@@ -435,12 +435,18 @@
     "typeLabel": "類型",
     "userLabel": "用戶",
     "sourceIp": "Source IP",
+    "statusCode": "狀態碼",
+    "errorCode": "錯誤碼",
+    "errorType": "錯誤類型",
+    "requestPath": "請求路徑",
+    "errorContent": "錯誤內容",
     "logType": {
       "all": "全部",
       "recharge": "充值",
       "consumption": "消費",
       "management": "管理",
-      "system": "系統"
+      "system": "系統",
+      "error": "錯誤"
     },
     "content": {
       "calculate_steps": "計算步驟:",

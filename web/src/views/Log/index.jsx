@@ -28,7 +28,6 @@ import { useLogType } from './type/LogType';
 
 export default function Log() {
   const { t } = useTranslation();
-  const LogType = useLogType();
   const originalKeyword = {
     p: 0,
     username: '',
@@ -56,6 +55,9 @@ export default function Log() {
 
   const [logs, setLogs] = useState([]);
   const userIsAdmin = useIsAdmin();
+  const LogType = useLogType(userIsAdmin);
+
+  const isErrorLog = searchKeyword.log_type === '5';
 
   // 添加列显示设置相关状态
   const [columnVisibility, setColumnVisibility] = useState({
@@ -73,7 +75,24 @@ export default function Log() {
     source_ip: true,
     detail: true
   });
+  const [errorLogColumnVisibility, setErrorLogColumnVisibility] = useState({
+    created_at: true,
+    channel_id: true,
+    user_id: true,
+    token_name: true,
+    model_name: true,
+    request_time: true,
+    status_code: true,
+    error_code: true,
+    error_type: true,
+    request_path: true,
+    source_ip: true,
+    content: true
+  });
   const [columnMenuAnchor, setColumnMenuAnchor] = useState(null);
+
+  const activeColumnVisibility = isErrorLog ? errorLogColumnVisibility : columnVisibility;
+  const activeSetColumnVisibility = isErrorLog ? setErrorLogColumnVisibility : setColumnVisibility;
 
   // 处理列显示菜单打开和关闭
   const handleColumnMenuOpen = (event) => {
@@ -86,23 +105,23 @@ export default function Log() {
 
   // 处理列显示状态变更
   const handleColumnVisibilityChange = (columnId) => {
-    setColumnVisibility({
-      ...columnVisibility,
-      [columnId]: !columnVisibility[columnId]
+    activeSetColumnVisibility({
+      ...activeColumnVisibility,
+      [columnId]: !activeColumnVisibility[columnId]
     });
   };
 
   // 处理全选/取消全选列显示
   const handleSelectAllColumns = () => {
-    const allColumns = Object.keys(columnVisibility);
-    const areAllVisible = allColumns.every((column) => columnVisibility[column]);
+    const allColumns = Object.keys(activeColumnVisibility);
+    const areAllVisible = allColumns.every((column) => activeColumnVisibility[column]);
 
     const newColumnVisibility = {};
     allColumns.forEach((column) => {
       newColumnVisibility[column] = !areAllVisible;
     });
 
-    setColumnVisibility(newColumnVisibility);
+    activeSetColumnVisibility(newColumnVisibility);
   };
 
   const handleSort = (event, id) => {
@@ -149,7 +168,13 @@ export default function Log() {
         if (orderBy) {
           orderBy = order === 'desc' ? '-' + orderBy : orderBy;
         }
-        const url = userIsAdmin ? '/api/log/' : '/api/log/self/';
+        let url;
+        if (keyword.log_type === '5') {
+          url = '/api/error_log/';
+          delete keyword.log_type;
+        } else {
+          url = userIsAdmin ? '/api/log/' : '/api/log/self/';
+        }
         if (!userIsAdmin) {
           delete keyword.username;
           delete keyword.channel_id;
@@ -284,34 +309,50 @@ export default function Log() {
               </MenuItem>
               <MenuItem onClick={handleSelectAllColumns} dense>
                 <Checkbox
-                  checked={Object.values(columnVisibility).every((visible) => visible)}
+                  checked={Object.values(activeColumnVisibility).every((visible) => visible)}
                   indeterminate={
-                    !Object.values(columnVisibility).every((visible) => visible) &&
-                    Object.values(columnVisibility).some((visible) => visible)
+                    !Object.values(activeColumnVisibility).every((visible) => visible) &&
+                    Object.values(activeColumnVisibility).some((visible) => visible)
                   }
                   size="small"
                 />
                 <ListItemText primary={t('logPage.columnSelectAll')} />
               </MenuItem>
-              {[
-                { id: 'created_at', label: t('logPage.timeLabel') },
-                { id: 'channel_id', label: t('logPage.channelLabel'), adminOnly: true },
-                { id: 'user_id', label: t('logPage.userLabel'), adminOnly: true },
-                { id: 'group', label: t('logPage.groupLabel') },
-                { id: 'token_name', label: t('logPage.tokenLabel') },
-                { id: 'type', label: t('logPage.typeLabel') },
-                { id: 'model_name', label: t('logPage.modelLabel') },
-                { id: 'duration', label: t('logPage.durationLabel') },
-                { id: 'message', label: t('logPage.inputLabel') },
-                { id: 'completion', label: t('logPage.outputLabel') },
-                { id: 'quota', label: t('logPage.quotaLabel') },
-                { id: 'source_ip', label: t('logPage.sourceIp') },
-                { id: 'detail', label: t('logPage.detailLabel') }
-              ].map(
+              {(isErrorLog
+                ? [
+                    { id: 'created_at', label: t('logPage.timeLabel') },
+                    { id: 'channel_id', label: t('logPage.channelLabel'), adminOnly: true },
+                    { id: 'user_id', label: t('logPage.userLabel'), adminOnly: true },
+                    { id: 'token_name', label: t('logPage.tokenLabel') },
+                    { id: 'model_name', label: t('logPage.modelLabel') },
+                    { id: 'request_time', label: t('logPage.durationLabel') },
+                    { id: 'status_code', label: t('logPage.statusCode') },
+                    { id: 'error_code', label: t('logPage.errorCode') },
+                    { id: 'error_type', label: t('logPage.errorType') },
+                    { id: 'request_path', label: t('logPage.requestPath') },
+                    { id: 'source_ip', label: t('logPage.sourceIp') },
+                    { id: 'content', label: t('logPage.errorContent') }
+                  ]
+                : [
+                    { id: 'created_at', label: t('logPage.timeLabel') },
+                    { id: 'channel_id', label: t('logPage.channelLabel'), adminOnly: true },
+                    { id: 'user_id', label: t('logPage.userLabel'), adminOnly: true },
+                    { id: 'group', label: t('logPage.groupLabel') },
+                    { id: 'token_name', label: t('logPage.tokenLabel') },
+                    { id: 'type', label: t('logPage.typeLabel') },
+                    { id: 'model_name', label: t('logPage.modelLabel') },
+                    { id: 'duration', label: t('logPage.durationLabel') },
+                    { id: 'message', label: t('logPage.inputLabel') },
+                    { id: 'completion', label: t('logPage.outputLabel') },
+                    { id: 'quota', label: t('logPage.quotaLabel') },
+                    { id: 'source_ip', label: t('logPage.sourceIp') },
+                    { id: 'detail', label: t('logPage.detailLabel') }
+                  ]
+              ).map(
                 (column) =>
                   (!column.adminOnly || userIsAdmin) && (
                     <MenuItem key={column.id} onClick={() => handleColumnVisibilityChange(column.id)} dense>
-                      <Checkbox checked={columnVisibility[column.id] || false} size="small" />
+                      <Checkbox checked={activeColumnVisibility[column.id] || false} size="small" />
                       <ListItemText primary={column.label} />
                     </MenuItem>
                   )
@@ -327,87 +368,44 @@ export default function Log() {
                 order={order}
                 orderBy={orderBy}
                 onRequestSort={handleSort}
-                headLabel={[
-                  {
-                    id: 'created_at',
-                    label: t('logPage.timeLabel'),
-                    disableSort: false,
-                    hide: !columnVisibility.created_at
-                  },
-                  {
-                    id: 'channel_id',
-                    label: t('logPage.channelLabel'),
-                    disableSort: false,
-                    hide: !columnVisibility.channel_id || !userIsAdmin
-                  },
-                  {
-                    id: 'user_id',
-                    label: t('logPage.userLabel'),
-                    disableSort: false,
-                    hide: !columnVisibility.user_id || !userIsAdmin
-                  },
-                  {
-                    id: 'group',
-                    label: t('logPage.groupLabel'),
-                    disableSort: false,
-                    hide: !columnVisibility.group
-                  },
-                  {
-                    id: 'token_name',
-                    label: t('logPage.tokenLabel'),
-                    disableSort: false,
-                    hide: !columnVisibility.token_name
-                  },
-                  {
-                    id: 'type',
-                    label: t('logPage.typeLabel'),
-                    disableSort: false,
-                    hide: !columnVisibility.type
-                  },
-                  {
-                    id: 'model_name',
-                    label: t('logPage.modelLabel'),
-                    disableSort: false,
-                    hide: !columnVisibility.model_name
-                  },
-                  {
-                    id: 'duration',
-                    label: t('logPage.durationLabel'),
-                    tooltip: t('logPage.durationTooltip'),
-                    disableSort: true,
-                    hide: !columnVisibility.duration
-                  },
-                  {
-                    id: 'message',
-                    label: t('logPage.inputLabel'),
-                    disableSort: true,
-                    hide: !columnVisibility.message
-                  },
-                  {
-                    id: 'completion',
-                    label: t('logPage.outputLabel'),
-                    disableSort: true,
-                    hide: !columnVisibility.completion
-                  },
-                  {
-                    id: 'quota',
-                    label: t('logPage.quotaLabel'),
-                    disableSort: true,
-                    hide: !columnVisibility.quota
-                  },
-                  {
-                    id: 'source_ip',
-                    label: t('logPage.sourceIp'),
-                    disableSort: true,
-                    hide: !columnVisibility.source_ip
-                  },
-                  {
-                    id: 'detail',
-                    label: t('logPage.detailLabel'),
-                    disableSort: true,
-                    hide: !columnVisibility.detail
-                  }
-                ]}
+                headLabel={
+                  isErrorLog
+                    ? [
+                        { id: 'created_at', label: t('logPage.timeLabel'), disableSort: false, hide: !activeColumnVisibility.created_at },
+                        { id: 'channel_id', label: t('logPage.channelLabel'), disableSort: false, hide: !activeColumnVisibility.channel_id || !userIsAdmin },
+                        { id: 'user_id', label: t('logPage.userLabel'), disableSort: false, hide: !activeColumnVisibility.user_id || !userIsAdmin },
+                        { id: 'token_name', label: t('logPage.tokenLabel'), disableSort: false, hide: !activeColumnVisibility.token_name },
+                        { id: 'model_name', label: t('logPage.modelLabel'), disableSort: false, hide: !activeColumnVisibility.model_name },
+                        { id: 'request_time', label: t('logPage.durationLabel'), disableSort: true, hide: !activeColumnVisibility.request_time },
+                        { id: 'status_code', label: t('logPage.statusCode'), disableSort: false, hide: !activeColumnVisibility.status_code },
+                        { id: 'error_code', label: t('logPage.errorCode'), disableSort: false, hide: !activeColumnVisibility.error_code },
+                        { id: 'error_type', label: t('logPage.errorType'), disableSort: true, hide: !activeColumnVisibility.error_type },
+                        { id: 'request_path', label: t('logPage.requestPath'), disableSort: true, hide: !activeColumnVisibility.request_path },
+                        { id: 'source_ip', label: t('logPage.sourceIp'), disableSort: true, hide: !activeColumnVisibility.source_ip },
+                        { id: 'content', label: t('logPage.errorContent'), disableSort: true, hide: !activeColumnVisibility.content }
+                      ]
+                    : [
+                        { id: 'created_at', label: t('logPage.timeLabel'), disableSort: false, hide: !activeColumnVisibility.created_at },
+                        { id: 'channel_id', label: t('logPage.channelLabel'), disableSort: false, hide: !activeColumnVisibility.channel_id || !userIsAdmin },
+                        { id: 'user_id', label: t('logPage.userLabel'), disableSort: false, hide: !activeColumnVisibility.user_id || !userIsAdmin },
+                        { id: 'group', label: t('logPage.groupLabel'), disableSort: false, hide: !activeColumnVisibility.group },
+                        { id: 'token_name', label: t('logPage.tokenLabel'), disableSort: false, hide: !activeColumnVisibility.token_name },
+                        { id: 'type', label: t('logPage.typeLabel'), disableSort: false, hide: !activeColumnVisibility.type },
+                        { id: 'model_name', label: t('logPage.modelLabel'), disableSort: false, hide: !activeColumnVisibility.model_name },
+                        {
+                          id: 'duration',
+                          label: t('logPage.durationLabel'),
+                          tooltip: t('logPage.durationTooltip'),
+                          disableSort: true,
+                          hide: !activeColumnVisibility.duration
+                        },
+                        { id: 'message', label: t('logPage.inputLabel'), disableSort: true, hide: !activeColumnVisibility.message },
+                        { id: 'completion', label: t('logPage.outputLabel'), disableSort: true, hide: !activeColumnVisibility.completion },
+                        { id: 'quota', label: t('logPage.quotaLabel'), disableSort: true, hide: !activeColumnVisibility.quota },
+                        { id: 'source_ip', label: t('logPage.sourceIp'), disableSort: true, hide: !activeColumnVisibility.source_ip },
+                        { id: 'detail', label: t('logPage.detailLabel'), disableSort: true, hide: !activeColumnVisibility.detail }
+                      ]
+                }
               />
               <TableBody>
                 {logs.map((row, index) => (
@@ -416,7 +414,8 @@ export default function Log() {
                     key={`${row.id}_${index}`}
                     userIsAdmin={userIsAdmin}
                     userGroup={userGroup}
-                    columnVisibility={columnVisibility}
+                    columnVisibility={activeColumnVisibility}
+                    isErrorLog={isErrorLog}
                   />
                 ))}
               </TableBody>

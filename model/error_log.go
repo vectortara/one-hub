@@ -84,9 +84,20 @@ func RecordErrorLog(channelId int, err *types.OpenAIErrorWithStatusCode, info *E
 		return
 	}
 
+	username := info.Username
+	if username == "" && info.UserId > 0 {
+		if resolved, cacheErr := CacheGetUsername(info.UserId); cacheErr == nil && resolved != "" {
+			username = resolved
+		} else if config.RedisEnabled {
+			// When Redis is enabled, CacheGetUsername depends on cache availability and can fail.
+			// Fall back to direct DB lookup so we still have a best-effort username snapshot in logs.
+			username = GetUsernameById(info.UserId)
+		}
+	}
+
 	errorLog := &ErrorLog{
 		UserId:      info.UserId,
-		Username:    info.Username,
+		Username:    username,
 		CreatedAt:   utils.GetTimestamp(),
 		ChannelId:   channelId,
 		TokenName:   info.TokenName,

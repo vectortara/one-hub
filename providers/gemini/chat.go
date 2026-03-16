@@ -173,12 +173,12 @@ func ConvertFromChatOpenai(request *types.ChatCompletionRequest) (*GeminiChatReq
 
 	if request.Reasoning != nil {
 		thinkingConfig := &ThinkingConfig{}
-		
+
 		// Set ThinkingBudget when MaxTokens >= 0
 		if request.Reasoning.MaxTokens >= 0 {
 			thinkingConfig.ThinkingBudget = &request.Reasoning.MaxTokens
 		}
-		
+
 		// Convert effort to thinkingLevel
 		if request.Reasoning.Effort != "" {
 			effortToLevelMap := map[string]string{
@@ -191,7 +191,7 @@ func ConvertFromChatOpenai(request *types.ChatCompletionRequest) (*GeminiChatReq
 				thinkingConfig.ThinkingLevel = level
 			}
 		}
-		
+
 		// Only set ThinkingConfig if at least one parameter is set
 		if thinkingConfig.ThinkingBudget != nil || thinkingConfig.ThinkingLevel != "" {
 			geminiRequest.GenerationConfig.ThinkingConfig = thinkingConfig
@@ -338,7 +338,14 @@ func ConvertToChatOpenai(provider base.ProviderInterface, response *GeminiChatRe
 	}
 
 	if len(response.Candidates) == 0 {
-		errWithCode = common.StringErrorWrapper("no candidates", "no_candidates", http.StatusInternalServerError)
+
+		// 尝试把这次 Gemini 的完整响应转成 JSON，方便在 Apifox 里排查
+		raw, _ := json.Marshal(response)
+		// 注意：这是测试环境用的调试信息，线上建议去掉或做脱敏
+		msg := "no candidates; raw_gemini_response=" + string(raw)
+		errWithCode = common.StringErrorWrapper(msg, "no_candidates", http.StatusInternalServerError)
+
+		//errWithCode = common.StringErrorWrapper("no candidates", "no_candidates", http.StatusInternalServerError)
 		return
 	}
 

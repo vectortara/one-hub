@@ -33,7 +33,14 @@ func (p *GeminiProvider) CreateGeminiChat(request *GeminiChatRequest) (*GeminiCh
 	}
 
 	if len(geminiResponse.Candidates) == 0 {
-		return nil, common.StringErrorWrapper("no candidates", "no_candidates", http.StatusInternalServerError)
+
+		// 尝试把这次 Gemini 的完整响应转成 JSON，方便在 Apifox 里排查
+		raw, _ := json.Marshal(geminiResponse)
+		// 注意：这是测试环境用的调试信息，线上建议去掉或做脱敏
+		msg := "no candidates; raw_gemini_response=" + string(raw)
+		return nil, common.StringErrorWrapper(msg, "no_candidates", http.StatusInternalServerError)
+
+		//return nil, common.StringErrorWrapper("no candidates", "no_candidates", http.StatusInternalServerError)
 	}
 
 	usage := p.GetUsage()

@@ -343,7 +343,7 @@ func ConvertToChatOpenai(provider base.ProviderInterface, response *GeminiChatRe
 		raw, _ := json.Marshal(response)
 		// 注意：这是测试环境用的调试信息，线上建议去掉或做脱敏
 		msg := "no candidates; raw_gemini_response=" + string(raw)
-		errWithCode = common.StringErrorWrapper(msg, "no_candidates", http.StatusInternalServerError)
+		errWithCode = common.StringErrorWrapper(msg, string(raw), http.StatusInternalServerError)
 
 		//errWithCode = common.StringErrorWrapper("no candidates", "no_candidates", http.StatusInternalServerError)
 		return

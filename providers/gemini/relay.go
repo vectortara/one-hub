@@ -37,7 +37,14 @@ func (p *GeminiProvider) CreateGeminiChat(request *GeminiChatRequest) (*GeminiCh
 		// 响应内容为空时，存储完整的原始响应
 		raw, _ := json.Marshal(geminiResponse)
 		msg := "no candidates; raw_gemini_response=" + string(raw)
-		return nil, common.StringErrorWrapper(msg, string(raw), http.StatusInternalServerError)
+
+		//一般为BlockReason = safety, 其它情况为no_candidates
+		reason := "no_candidates"
+		if geminiResponse.PromptFeedback != nil && geminiResponse.PromptFeedback.BlockReason != "" {
+			reason = geminiResponse.PromptFeedback.BlockReason
+		}
+
+		return nil, common.StringErrorWrapper(msg, reason, http.StatusInternalServerError)
 
 		//return nil, common.StringErrorWrapper("no candidates", "no_candidates", http.StatusInternalServerError)
 	}

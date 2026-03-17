@@ -339,11 +339,17 @@ func ConvertToChatOpenai(provider base.ProviderInterface, response *GeminiChatRe
 
 	if len(response.Candidates) == 0 {
 
-		// 尝试把这次 Gemini 的完整响应转成 JSON，方便在 Apifox 里排查
+		// 响应内容为空时，存储完整的原始响应
 		raw, _ := json.Marshal(response)
-		// 注意：这是测试环境用的调试信息，线上建议去掉或做脱敏
 		msg := "no candidates; raw_gemini_response=" + string(raw)
-		errWithCode = common.StringErrorWrapper(msg, string(raw), http.StatusInternalServerError)
+
+		//一般为BlockReason = safety, 其它情况为no_candidates
+		reason := "no_candidates"
+		if response.PromptFeedback != nil && response.PromptFeedback.BlockReason != "" {
+			reason = response.PromptFeedback.BlockReason
+		}
+
+		errWithCode = common.StringErrorWrapper(msg, reason, http.StatusInternalServerError)
 
 		//errWithCode = common.StringErrorWrapper("no candidates", "no_candidates", http.StatusInternalServerError)
 		return

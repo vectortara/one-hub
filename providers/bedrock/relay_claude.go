@@ -37,10 +37,11 @@ func (p *BedrockProvider) CreateClaudeChatStream(request *claude.ClaudeRequest) 
 	defer req.Body.Close()
 
 	chatHandler := &claude.ClaudeRelayStreamHandler{
-		Usage:     p.Usage,
-		ModelName: request.Model,
-		Prefix:    `{"type"`,
-		AddEvent:  true,
+		Usage:       p.Usage,
+		RecordUsage: &claude.Usage{},
+		ModelName:   request.Model,
+		Prefix:      `{"type"`,
+		AddEvent:    true,
 	}
 
 	// 发送请求

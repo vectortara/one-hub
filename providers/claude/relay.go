@@ -15,6 +15,8 @@ type ClaudeRelayStreamHandler struct {
 	Prefix     string
 	StartUsage *Usage
 
+	RecordUsage *Usage //持续维护流式数据，都取最新值
+
 	AddEvent bool
 }
 
@@ -51,9 +53,10 @@ func (p *ClaudeProvider) CreateClaudeChatStream(request *ClaudeRequest) (request
 	defer req.Body.Close()
 
 	chatHandler := &ClaudeRelayStreamHandler{
-		Usage:     p.Usage,
-		ModelName: request.Model,
-		Prefix:    `data: {"type"`,
+		Usage:       p.Usage,
+		RecordUsage: &Usage{},
+		ModelName:   request.Model,
+		Prefix:      `data: {"type"`,
 	}
 
 	// 发送请求
@@ -113,10 +116,10 @@ func (h *ClaudeRelayStreamHandler) HandlerStream(rawLine *[]byte, dataChan chan 
 	switch claudeResponse.Type {
 	case "message_start":
 		ClaudeUsageToOpenaiUsage(&claudeResponse.Message.Usage, h.Usage)
-		h.StartUsage = &claudeResponse.Message.Usage
+		h.RecordUsage = &claudeResponse.Message.Usage
 	case "message_delta":
-		ClaudeUsageMerge(&claudeResponse.Usage, h.StartUsage)
-		ClaudeUsageToOpenaiUsage(&claudeResponse.Usage, h.Usage)
+		UpdateStreamUsage(&claudeResponse.Usage, h.RecordUsage)
+		ClaudeUsageToOpenaiUsage(h.RecordUsage, h.Usage)
 	case "content_block_delta":
 		h.Usage.TextBuilder.WriteString(claudeResponse.Delta.Text)
 	}

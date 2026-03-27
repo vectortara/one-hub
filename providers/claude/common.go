@@ -65,23 +65,35 @@ func ErrorToClaudeErr(err error) *ClaudeError {
 	}
 }
 
+// 旧版流式更新usage，每次叠加，有bug，废弃
 func ClaudeUsageMerge(usage *Usage, mergeUsage *Usage) {
 
-	//以最新结果为准
-	if usage.InputTokens == 0 {
-		usage.InputTokens = mergeUsage.InputTokens
+	if usage.InputTokens != mergeUsage.InputTokens {
+		usage.InputTokens += mergeUsage.InputTokens
 	}
 
-	if usage.OutputTokens == 0 {
-		usage.OutputTokens = mergeUsage.OutputTokens
+	usage.OutputTokens += mergeUsage.OutputTokens
+	usage.CacheCreationInputTokens += mergeUsage.CacheCreationInputTokens
+	usage.CacheReadInputTokens += mergeUsage.CacheReadInputTokens
+}
+
+// 流式更新usage，保持最新值
+func UpdateStreamUsage(newUsage *Usage, originUsage *Usage) {
+
+	if newUsage.InputTokens > 0 {
+		originUsage.InputTokens = newUsage.InputTokens
 	}
 
-	if usage.CacheCreationInputTokens == 0 {
-		usage.CacheCreationInputTokens = mergeUsage.CacheCreationInputTokens
+	if newUsage.OutputTokens > 0 {
+		originUsage.OutputTokens = newUsage.OutputTokens
 	}
 
-	if usage.CacheReadInputTokens == 0 {
-		usage.CacheReadInputTokens = mergeUsage.CacheReadInputTokens
+	if newUsage.CacheCreationInputTokens > 0 {
+		originUsage.CacheCreationInputTokens = newUsage.CacheCreationInputTokens
+	}
+
+	if newUsage.CacheReadInputTokens > 0 {
+		originUsage.CacheReadInputTokens = newUsage.CacheReadInputTokens
 	}
 }
 

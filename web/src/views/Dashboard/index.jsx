@@ -41,7 +41,7 @@ const Dashboard = () => {
 
   const [dashboardData, setDashboardData] = useState(null);
   const [dateRange, setDateRange] = useState({
-    start: dayjs().startOf('day'),
+    start: dayjs().subtract(6, 'day').startOf('day'),
     end: dayjs().endOf('day')
   });
   const siteInfo = useSelector((state) => state.siteInfo);

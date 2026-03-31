@@ -124,8 +124,10 @@ export default function Overview() {
   const [orderData, setOrderData] = useState([]);
   const [orderLoading, setOrderLoading] = useState(true);
   const [usersData, setUsersData] = useState([]);
-  // 修改默认日期范围为当天
-  const [dateRange, setDateRange] = useState({ start: dayjs().startOf('day'), end: dayjs().endOf('day') });
+  // 默认一周
+  const [dateRange, setDateRange] = useState({ 
+    start: dayjs().subtract(6, 'day').startOf('day'),
+    end: dayjs().endOf('day') });
 
   const [groupType, setGroupType] = useState('model_type');
   const [userId, setUserId] = useState(0);

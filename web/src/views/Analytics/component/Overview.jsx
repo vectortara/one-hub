@@ -127,7 +127,8 @@ export default function Overview() {
   // 默认一周
   const [dateRange, setDateRange] = useState({ 
     start: dayjs().subtract(6, 'day').startOf('day'),
-    end: dayjs().endOf('day') });
+    end: dayjs().endOf('day') 
+  });
 
   const [groupType, setGroupType] = useState('model_type');
   const [userId, setUserId] = useState(0);

@@ -83,6 +83,61 @@ func changeTokenKeyColumnType() *gormigrate.Migration {
 	}
 }
 
+func changeChannelGroupColumnType() *gormigrate.Migration {
+	return &gormigrate.Migration{
+		ID: "202603310001",
+		Migrate: func(tx *gorm.DB) error {
+			// 如果表不存在，说明是新数据库，直接跳过
+			if !tx.Migrator().HasTable("channels") {
+				return nil
+			}
+
+			dialect := tx.Dialector.Name()
+			var err error
+
+			switch dialect {
+			case "mysql":
+				err = tx.Exec("ALTER TABLE channels MODIFY COLUMN `group` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT 'default'").Error
+			case "postgres":
+				err = tx.Exec(`ALTER TABLE channels ALTER COLUMN "group" TYPE varchar(512)`).Error
+			case "sqlite":
+				// SQLite 对长度限制不严格，这里不做变更
+				return nil
+			}
+
+			if err != nil {
+				logger.SysLog("修改 channels.group 字段类型失败: " + err.Error())
+				return err
+			}
+			return nil
+		},
+		Rollback: func(tx *gorm.DB) error {
+			// 回滚时仅在确认表存在时尝试缩回原长度；如失败返回错误
+			if !tx.Migrator().HasTable("channels") {
+				return nil
+			}
+
+			dialect := tx.Dialector.Name()
+			var err error
+
+			switch dialect {
+			case "mysql":
+				err = tx.Exec("ALTER TABLE channels MODIFY COLUMN `group` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT 'default'").Error
+			case "postgres":
+				err = tx.Exec(`ALTER TABLE channels ALTER COLUMN "group" TYPE varchar(32)`).Error
+			case "sqlite":
+				return nil
+			}
+
+			if err != nil {
+				logger.SysLog("回滚 channels.group 字段类型失败: " + err.Error())
+				return err
+			}
+			return nil
+		},
+	}
+}
+
 func migrationBefore(db *gorm.DB) error {
 	// 从库不执行
 	if !config.IsMasterNode {
@@ -98,6 +153,7 @@ func migrationBefore(db *gorm.DB) error {
 	m := gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{
 		removeKeyIndexMigration(),
 		changeTokenKeyColumnType(),
+		changeChannelGroupColumnType(),
 	})
 	return m.Migrate()
 }

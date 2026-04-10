@@ -45,7 +45,8 @@ const validationSchema = Yup.object().shape({
     is: false,
     then: Yup.number().min(0, 'userPage.quotaMin'),
     otherwise: Yup.number()
-  })
+  }),
+  user_note: Yup.string().max(255, 'userPage.userNoteMax')
 });
 
 const originInputs = {
@@ -53,7 +54,8 @@ const originInputs = {
   username: '',
   display_name: '',
   password: '',
-  group: 'default'
+  group: 'default',
+  user_note: ''
 };
 
 const EditModal = ({ open, userId, onCancel, onOk }) => {
@@ -69,18 +71,16 @@ const EditModal = ({ open, userId, onCancel, onOk }) => {
     let res;
     values = trims(values);
     try {
-      if (values.is_edit) {
-        res = await API.put(`/api/user/`, { ...values, id: parseInt(userId) });
+      const { is_edit, user_note, ...rest } = values;
+      const payload = { ...rest, user_note: user_note ?? '' };
+      if (is_edit) {
+        res = await API.put(`/api/user/`, { ...payload, id: parseInt(userId) });
       } else {
-        res = await API.post(`/api/user/`, values);
+        res = await API.post(`/api/user/`, payload);
       }
       const { success, message } = res.data;
       if (success) {
-        if (values.is_edit) {
-          showSuccess(t('userPage.saveSuccess'));
-        } else {
-          showSuccess(t('userPage.saveSuccess'));
-        }
+        showSuccess(t('userPage.saveSuccess'));
         setSubmitting(false);
         setStatus({ success: true });
         onOk(true);
@@ -253,6 +253,28 @@ const EditModal = ({ open, userId, onCancel, onOk }) => {
                   </FormControl>
                 </>
               )}
+              <FormControl fullWidth error={Boolean(touched.user_note && errors.user_note)} sx={{ ...theme.typography.otherInput }}>
+                <InputLabel htmlFor="channel-user_note-label">{t('userPage.userNote')}</InputLabel>
+                <OutlinedInput
+                  id="channel-user_note-label"
+                  label={t('userPage.userNote')}
+                  type="text"
+                  multiline
+                  minRows={2}
+                  value={values.user_note ?? ''}
+                  name="user_note"
+                  onBlur={handleBlur}
+                  onChange={handleChange}
+                  placeholder={t('userPage.userNotePlaceholder')}
+                  inputProps={{ maxLength: 255 }}
+                  aria-describedby="helper-text-channel-user_note-label"
+                />
+                {touched.user_note && errors.user_note && (
+                  <FormHelperText error id="helper-text-channel-user_note-label">
+                    {t(errors.user_note)}
+                  </FormHelperText>
+                )}
+              </FormControl>
               <DialogActions>
                 <Button onClick={onCancel}>{t('userPage.cancel')}</Button>
                 <Button disableElevation disabled={isSubmitting} type="submit" variant="contained" color="primary">

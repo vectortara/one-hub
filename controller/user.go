@@ -140,6 +140,7 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
+
 	if err := common.Validate.Struct(&user); err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -396,6 +397,9 @@ func GetSelf(c *gin.Context) {
 		})
 		return
 	}
+	if c.GetInt("role") < config.RoleAdminUser {
+		user.UserNote = ""
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -403,6 +407,7 @@ func GetSelf(c *gin.Context) {
 	})
 }
 
+// 管理员更新用户
 func UpdateUser(c *gin.Context) {
 	var updatedUser model.User
 	err := json.NewDecoder(c.Request.Body).Decode(&updatedUser)
@@ -450,7 +455,7 @@ func UpdateUser(c *gin.Context) {
 		updatedUser.Password = "" // rollback to what it should be
 	}
 	updatePassword := updatedUser.Password != ""
-	if err := updatedUser.Update(updatePassword); err != nil {
+	if err := updatedUser.UpdateWithNote(updatePassword); err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": err.Error(),
@@ -476,6 +481,7 @@ func UpdateSelf(c *gin.Context) {
 		})
 		return
 	}
+	user.UserNote = ""
 	if user.Password == "" {
 		user.Password = "$I_LOVE_U" // make Validator happy :)
 	}
@@ -580,6 +586,7 @@ func CreateUser(c *gin.Context) {
 		Username:    user.Username,
 		Password:    user.Password,
 		DisplayName: user.DisplayName,
+		UserNote:    user.UserNote,
 	}
 	if err := cleanUser.Insert(0); err != nil {
 		c.JSON(http.StatusOK, gin.H{

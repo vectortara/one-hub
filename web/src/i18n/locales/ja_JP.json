@@ -1387,7 +1387,10 @@
     "changeQuotaHelperText": "こちらは増減です。ユーザーの残高を直接変更するものではありません。ドルを入力し、最大で {{quota}} を差し引くことができます。",
     "changeQuotaNotEmpty": "変更枠を記入してください",
     "changeQuotaNotEnough": "ユーザーの残高を超える金額を差し引くことはできません。",
-    "quotaRemark": "コメント"
+    "quotaRemark": "コメント",
+    "userNote": "メモ",
+    "userNotePlaceholder": "管理者のみが閲覧できる内部メモ",
+    "userNoteMax": "メモは255文字以内にしてください"
   },
   "user_group": "ユーザーグループ",
   "validation": {

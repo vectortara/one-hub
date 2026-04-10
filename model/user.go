@@ -22,6 +22,7 @@ type User struct {
 	Username         string         `json:"username" gorm:"unique;index" validate:"max=191"` //创建用户，更新用户会用到的验证字段
 	Password         string         `json:"password" gorm:"not null;" validate:"min=8,max=20"`
 	DisplayName      string         `json:"display_name" gorm:"index" validate:"max=20"`
+	UserNote         string         `json:"user_note" gorm:"type:varchar(255);default:''" validate:"max=255"`
 	Role             int            `json:"role" gorm:"type:int;default:1"`   // admin, common
 	Status           int            `json:"status" gorm:"type:int;default:1"` // enabled, disabled
 	Email            string         `json:"email" gorm:"index" validate:"max=50"`
@@ -158,9 +159,10 @@ func (user *User) Insert(inviterId int) error {
 	return nil
 }
 
-func (user *User) Update(updatePassword bool) error {
+// 一般更新用户 - 不更新note
+func (user *User) update(tx *gorm.DB, updatePassword bool) error {
 	var err error
-	omitFields := []string{"quota", "used_quota", "request_count", "aff_count", "aff_quota", "aff_history"}
+	omitFields := []string{"quota", "used_quota", "request_count", "aff_count", "aff_quota", "aff_history", "user_note"}
 
 	if updatePassword {
 		user.Password, err = common.Password2Hash(user.Password)
@@ -171,9 +173,11 @@ func (user *User) Update(updatePassword bool) error {
 		omitFields = append(omitFields, "password")
 	}
 
-	err = DB.Model(user).Omit(omitFields...).Updates(user).Error
+	return tx.Model(user).Omit(omitFields...).Updates(user).Error
+}
 
-	if err == nil && user.Role == config.RoleRootUser {
+func (user *User) afterUpdate() {
+	if user.Role == config.RoleRootUser {
 		config.RootUserEmail = user.Email
 	}
 
@@ -181,12 +185,45 @@ func (user *User) Update(updatePassword bool) error {
 	if config.RedisEnabled {
 		redis.RedisDel(fmt.Sprintf(UserGroupCacheKey, user.Id))
 	}
+}
 
-	return err
+func (user *User) Update(updatePassword bool) error {
+	err := user.update(DB, updatePassword)
+	if err != nil {
+		return err
+	}
+
+	user.afterUpdate()
+	return nil
+}
+
+// 管理员更新 - 带备注
+func (user *User) UpdateWithNote(updatePassword bool) error {
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		err := user.update(tx, updatePassword)
+		if err != nil {
+			return err
+		}
+		return updateUserNoteByID(tx, user.Id, user.UserNote)
+	})
+	if err != nil {
+		return err
+	}
+
+	user.afterUpdate()
+	return nil
 }
 
 func UpdateUser(id int, fields map[string]interface{}) error {
 	return DB.Model(&User{}).Where("id = ?", id).Updates(fields).Error
+}
+
+func UpdateUserNoteByID(id int, userNote string) error {
+	return updateUserNoteByID(DB, id, userNote)
+}
+
+func updateUserNoteByID(tx *gorm.DB, id int, userNote string) error {
+	return tx.Model(&User{}).Where("id = ?", id).Update("user_note", userNote).Error
 }
 
 func (user *User) Delete() error {

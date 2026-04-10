@@ -16,7 +16,8 @@ import {
   Tooltip,
   Stack,
   TextField,
-  InputAdornment
+  InputAdornment,
+  Typography
 } from '@mui/material';
 
 import Label from 'ui-component/Label';
@@ -149,6 +150,13 @@ export default function UsersTableRow({ item, manageUser, handleOpenModal, setMo
         <TableCell>{item.created_time === 0 ? t('common.unknown') : timestamp2string(item.created_time)}</TableCell>
         <TableCell>{item.last_login_time === 0 ? t('common.unknown') : timestamp2string(item.last_login_time)}</TableCell>
         <TableCell>{item.last_login_ip === '' || item.last_login_time === undefined ? t('common.unknown') : item.last_login_ip}</TableCell>
+        <TableCell sx={{ maxWidth: 220 }}>
+          <Tooltip title={item.user_note || ''} placement="top-start">
+            <Typography variant="body2" noWrap component="span">
+              {item.user_note || '—'}
+            </Typography>
+          </Tooltip>
+        </TableCell>
         <TableCell>
           {' '}
           <TableSwitch id={`switch-${item.id}`} checked={statusSwitch === 1} onChange={handleStatus} />

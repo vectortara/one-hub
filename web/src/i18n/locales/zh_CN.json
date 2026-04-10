@@ -568,7 +568,10 @@
     "changeQuotaHelperText": "这里是增减，不是直接更改用户余额，输入美元，你最多可以减扣 {{quota}}",
     "changeQuotaNotEmpty": "请填写变更额度",
     "changeQuotaNotEnough": "不能扣除超过用户余额的额度",
-    "quotaRemark": "备注"
+    "quotaRemark": "备注",
+    "userNote": "备注",
+    "userNotePlaceholder": "仅管理员可见的内部备忘",
+    "userNoteMax": "备注不能超过 255 个字符"
   },
   "profilePage": {
     "personalInfo": "个人信息",

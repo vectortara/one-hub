@@ -1389,7 +1389,10 @@
     "changeQuotaHelperText": "呢度係增減，唔係直接更改用戶餘額，輸入美元，你最多可以扣除 {{quota}}",
     "changeQuotaNotEmpty": "請填寫更改額度",
     "changeQuotaNotEnough": "唔可以扣除超過用戶餘額嘅金額",
-    "quotaRemark": "備註"
+    "quotaRemark": "備註",
+    "userNote": "備註",
+    "userNotePlaceholder": "僅管理員可見嘅內部備忘",
+    "userNoteMax": "備註唔可以超過 255 個字"
   },
   "user_group": "用戶分組",
   "validation": {

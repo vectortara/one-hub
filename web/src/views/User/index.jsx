@@ -220,6 +220,7 @@ export default function Users() {
                   { id: 'created_time', label: t('userPage.creationTime'), disableSort: false },
                   { id: 'last_login_time', label: t('userPage.lastLoginTime'), disableSort: false },
                   { id: 'last_login_ip', label: t('userPage.lastLoginIP'), disableSort: false },
+                  { id: 'user_note', label: t('userPage.userNote'), disableSort: true },
                   { id: 'status', label: t('userPage.status'), disableSort: false },
                   { id: 'action', label: t('userPage.action'), disableSort: true }
                 ]}

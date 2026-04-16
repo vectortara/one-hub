@@ -6,91 +6,79 @@ import Badge from '@mui/material/Badge';
 
 import { TableRow, TableCell, Stack, Collapse, Tooltip, Typography } from '@mui/material';
 
-import { timestamp2string, renderQuota } from 'utils/common';
+import { renderQuota } from 'utils/common';
 import Label from 'ui-component/Label';
 import { useLogType } from '../type/LogType';
 import { useTranslation } from 'react-i18next';
 import QuotaWithDetailRow from './QuotaWithDetailRow';
 import QuotaWithDetailContent from './QuotaWithDetailContent';
-import { calculatePrice } from './QuotaWithDetailContent';
 import { styled } from '@mui/material/styles';
+import {
+  calculateTokens,
+  formatCellText,
+  formatInputText,
+  formatTypeText,
+  getDetailTextLines,
+  getDurationInfo,
+  getGroupDisplayInfo,
+  getModelDisplayInfo,
+  requestTSLabelOptions,
+  requestTimeLabelOptions,
+  statusCodeColor
+} from '../utils/displayText';
 
-function renderType(type, logTypes, t) {
-  const typeOption = logTypes[type];
-  if (typeOption) {
-    return (
-      <Label variant="filled" color={typeOption.color}>
-        {' '}
-        {typeOption.text}{' '}
-      </Label>
-    );
-  } else {
-    return (
-      <Label variant="filled" color="error">
-        {' '}
-        {t('logPage.unknown')}{' '}
-      </Label>
-    );
-  }
-}
+const logItemPropType = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  quota: PropTypes.number,
+  status_code: PropTypes.number,
+  token_name: PropTypes.string,
+  type: PropTypes.number,
+  username: PropTypes.string
+});
 
-function requestTimeLabelOptions(request_time) {
-  let color = 'error';
-  if (request_time === 0) {
-    color = 'default';
-  } else if (request_time <= 10) {
-    color = 'success';
-  } else if (request_time <= 50) {
-    color = 'primary';
-  } else if (request_time <= 100) {
-    color = 'secondary';
-  }
-
-  return color;
-}
-
-function requestTSLabelOptions(request_ts) {
-  let color = 'success';
-  if (request_ts === 0) {
-    color = 'default';
-  } else if (request_ts <= 10) {
-    color = 'error';
-  } else if (request_ts <= 15) {
-    color = 'secondary';
-  } else if (request_ts <= 20) {
-    color = 'primary';
-  }
-
-  return color;
-}
+const columnVisibilityPropType = PropTypes.shape({
+  channel_id: PropTypes.bool,
+  completion: PropTypes.bool,
+  content: PropTypes.bool,
+  created_at: PropTypes.bool,
+  detail: PropTypes.bool,
+  duration: PropTypes.bool,
+  error_code: PropTypes.bool,
+  error_type: PropTypes.bool,
+  group: PropTypes.bool,
+  message: PropTypes.bool,
+  model_name: PropTypes.bool,
+  quota: PropTypes.bool,
+  request_path: PropTypes.bool,
+  request_time: PropTypes.bool,
+  source_ip: PropTypes.bool,
+  status_code: PropTypes.bool,
+  token_name: PropTypes.bool,
+  type: PropTypes.bool,
+  user_id: PropTypes.bool
+});
 
 export default function LogTableRow({ item, userIsAdmin, userGroup, columnVisibility, isErrorLog = false }) {
   if (isErrorLog) {
     return <ErrorLogRow item={item} userIsAdmin={userIsAdmin} columnVisibility={columnVisibility} />;
   }
 
+  return <NormalLogRow item={item} userIsAdmin={userIsAdmin} userGroup={userGroup} columnVisibility={columnVisibility} />;
+}
+
+function NormalLogRow({ item, userIsAdmin, userGroup, columnVisibility }) {
   const { t } = useTranslation();
   const LogType = useLogType();
-  let request_time = item.request_time / 1000;
-  let request_time_str = request_time.toFixed(2) + ' S';
-
-  let first_time = item.metadata?.first_response ? item.metadata.first_response / 1000 : 0;
-  let first_time_str = first_time ? `${first_time.toFixed(2)} S` : '';
-
-  const stream_time = request_time - first_time;
-
-  let request_ts = 0;
-  let request_ts_str = '';
-  if (first_time > 0 && item.completion_tokens > 0) {
-    // Using the completion_tokens directly since we already checked it's > 0
-    request_ts = item.completion_tokens / stream_time;
-    request_ts_str = `${request_ts.toFixed(2)} t/s`;
-  }
-
+  const durationInfo = getDurationInfo(item);
+  const groupInfo = getGroupDisplayInfo(item, userGroup, t);
+  const inputText = formatInputText(item);
   const { totalInputTokens, totalOutputTokens, show, tokenDetails } = useMemo(() => calculateTokens(item), [item]);
+  const detailLines = getDetailTextLines(item, t);
 
   // 计算当前显示的列数
-  const colCount = Object.values(columnVisibility).filter(Boolean).length;
+  const colCount = Object.entries(columnVisibility).filter(
+    ([columnId, visible]) => visible && (userIsAdmin || !['channel_id', 'user_id'].includes(columnId))
+  ).length;
 
   // 展开状态（仅type=2时才有展开）
   const [open, setOpen] = useState(false);
@@ -99,38 +87,33 @@ export default function LogTableRow({ item, userIsAdmin, userGroup, columnVisibi
   return (
     <>
       <TableRow tabIndex={item.id}>
-        {columnVisibility.created_at && <TableCell sx={{ p: '10px 8px' }}>{timestamp2string(item.created_at)}</TableCell>}
+        {columnVisibility.created_at && <TableCell sx={{ p: '10px 8px' }}>{formatCellText('created_at', item)}</TableCell>}
 
-        {userIsAdmin && columnVisibility.channel_id && (
-          <TableCell sx={{ p: '10px 8px' }}>
-            {(item.channel_id || '') + ' ' + (item.channel?.name ? '(' + item.channel.name + ')' : '')}
-          </TableCell>
-        )}
+        {userIsAdmin && columnVisibility.channel_id && <TableCell sx={{ p: '10px 8px' }}>{formatCellText('channel_id', item)}</TableCell>}
         {userIsAdmin && columnVisibility.user_id && (
           <TableCell sx={{ p: '10px 8px' }}>
             <Label color="default" variant="outlined" copyText={item.username}>
-              {item.username}
+              {formatCellText('user_id', item)}
             </Label>
           </TableCell>
         )}
 
         {columnVisibility.group && (
           <TableCell sx={{ p: '10px 8px' }}>
-            {item?.metadata?.is_backup_group ? (
+            {groupInfo.isBackupGroup ? (
               // 显示分组重定向：原始分组 → 备份分组
               <Stack direction="row" spacing={1} alignItems="center">
                 <Label color="default" variant="soft">
-                  {userGroup[item.metadata.group_name]?.name || '跟随用户'}
+                  {groupInfo.originalName}
                 </Label>
                 <ArrowForward sx={{ fontSize: 16, color: 'text.secondary' }} />
                 <Label color="warning" variant="soft">
-                  {userGroup[item.metadata.backup_group_name]?.name || '备份分组'}
+                  {groupInfo.backupName}
                 </Label>
               </Stack>
-            ) : // 正常显示分组
-            item?.metadata?.group_name || item?.metadata?.backup_group_name ? (
+            ) : groupInfo.singleName ? (
               <Label color="default" variant="soft">
-                {userGroup[item.metadata.group_name || item.metadata.backup_group_name]?.name || '跟随用户'}
+                {groupInfo.singleName}
               </Label>
             ) : (
               ''
@@ -146,24 +129,33 @@ export default function LogTableRow({ item, userIsAdmin, userGroup, columnVisibi
             )}
           </TableCell>
         )}
-        {columnVisibility.type && <TableCell sx={{ p: '10px 8px' }}>{renderType(item.type, LogType, t)}</TableCell>}
-        {columnVisibility.model_name && <TableCell sx={{ p: '10px 8px' }}>{viewModelName(item.model_name, item.is_stream)}</TableCell>}
+        {columnVisibility.type && (
+          <TableCell sx={{ p: '10px 8px' }}>
+            <Label variant="filled" color={LogType[item.type]?.color || 'error'}>
+              {' '}
+              {formatTypeText(item.type, LogType, t)}{' '}
+            </Label>
+          </TableCell>
+        )}
+        {columnVisibility.model_name && <TableCell sx={{ p: '10px 8px' }}>{viewModelName(item)}</TableCell>}
 
         {columnVisibility.duration && (
           <TableCell sx={{ p: '10px 8px' }}>
             <Stack direction="column" spacing={0.5}>
-              <Label color={requestTimeLabelOptions(request_time)}>
-                {item.request_time === 0 ? '无' : request_time_str} {first_time_str ? ' / ' + first_time_str : ''}
+              <Label color={requestTimeLabelOptions(durationInfo.requestTime)}>
+                {`${durationInfo.requestTimeText}${durationInfo.firstTimeText ? ` / ${durationInfo.firstTimeText}` : ''}`}
               </Label>
 
-              {request_ts_str && <Label color={requestTSLabelOptions(request_ts)}>{request_ts_str}</Label>}
+              {durationInfo.requestTsText && (
+                <Label color={requestTSLabelOptions(durationInfo.requestTs)}>{durationInfo.requestTsText}</Label>
+              )}
             </Stack>
           </TableCell>
         )}
         {columnVisibility.message && (
-          <TableCell sx={{ p: '10px 8px' }}>{viewInput(item, t, totalInputTokens, totalOutputTokens, show, tokenDetails)}</TableCell>
+          <TableCell sx={{ p: '10px 8px' }}>{viewInput(inputText, t, totalInputTokens, totalOutputTokens, show, tokenDetails)}</TableCell>
         )}
-        {columnVisibility.completion && <TableCell sx={{ p: '10px 8px' }}>{item.completion_tokens || ''}</TableCell>}
+        {columnVisibility.completion && <TableCell sx={{ p: '10px 8px' }}>{formatCellText('completion', item)}</TableCell>}
         {columnVisibility.quota && (
           <TableCell sx={{ p: '10px 8px' }}>
             {item.type === 2 ? (
@@ -175,10 +167,8 @@ export default function LogTableRow({ item, userIsAdmin, userGroup, columnVisibi
             )}
           </TableCell>
         )}
-        {columnVisibility.source_ip && <TableCell sx={{ p: '10px 8px' }}>{item.source_ip || ''}</TableCell>}
-        {columnVisibility.detail && (
-          <TableCell sx={{ p: '10px 8px' }}>{viewLogContent(item, t, totalInputTokens, totalOutputTokens)}</TableCell>
-        )}
+        {columnVisibility.source_ip && <TableCell sx={{ p: '10px 8px' }}>{formatCellText('source_ip', item)}</TableCell>}
+        {columnVisibility.detail && <TableCell sx={{ p: '10px 8px' }}>{viewLogContent(item, detailLines)}</TableCell>}
       </TableRow>
       {/* 展开行 */}
       {showExpand && (
@@ -201,35 +191,31 @@ export default function LogTableRow({ item, userIsAdmin, userGroup, columnVisibi
 }
 
 LogTableRow.propTypes = {
-  item: PropTypes.object,
+  item: logItemPropType,
   userIsAdmin: PropTypes.bool,
   userGroup: PropTypes.object,
-  columnVisibility: PropTypes.object,
+  columnVisibility: columnVisibilityPropType,
   isErrorLog: PropTypes.bool
 };
 
-function statusCodeColor(statusCode) {
-  if (statusCode >= 500) return 'error';
-  if (statusCode >= 400) return 'warning';
-  return 'success';
-}
+NormalLogRow.propTypes = {
+  item: logItemPropType,
+  userIsAdmin: PropTypes.bool,
+  userGroup: PropTypes.object,
+  columnVisibility: columnVisibilityPropType
+};
 
 function ErrorLogRow({ item, userIsAdmin, columnVisibility }) {
-  let request_time = item.request_time / 1000;
-  let request_time_str = request_time.toFixed(2) + ' S';
+  const requestTimeInfo = getDurationInfo(item);
 
   return (
     <TableRow tabIndex={item.id}>
-      {columnVisibility.created_at && <TableCell sx={{ p: '10px 8px' }}>{timestamp2string(item.created_at)}</TableCell>}
-      {userIsAdmin && columnVisibility.channel_id && (
-        <TableCell sx={{ p: '10px 8px' }}>
-          {(item.channel_id || '') + ' ' + (item.channel?.name ? '(' + item.channel.name + ')' : '')}
-        </TableCell>
-      )}
+      {columnVisibility.created_at && <TableCell sx={{ p: '10px 8px' }}>{formatCellText('created_at', item)}</TableCell>}
+      {userIsAdmin && columnVisibility.channel_id && <TableCell sx={{ p: '10px 8px' }}>{formatCellText('channel_id', item)}</TableCell>}
       {userIsAdmin && columnVisibility.user_id && (
         <TableCell sx={{ p: '10px 8px' }}>
           <Label color="default" variant="outlined" copyText={item.username}>
-            {item.username}
+            {formatCellText('user_id', item)}
           </Label>
         </TableCell>
       )}
@@ -242,30 +228,28 @@ function ErrorLogRow({ item, userIsAdmin, columnVisibility }) {
           )}
         </TableCell>
       )}
-      {columnVisibility.model_name && <TableCell sx={{ p: '10px 8px' }}>{viewModelName(item.model_name, item.is_stream)}</TableCell>}
+      {columnVisibility.model_name && <TableCell sx={{ p: '10px 8px' }}>{viewModelName(item)}</TableCell>}
       {columnVisibility.request_time && (
         <TableCell sx={{ p: '10px 8px' }}>
-          <Label color={requestTimeLabelOptions(request_time)}>
-            {item.request_time === 0 ? '无' : request_time_str}
-          </Label>
+          <Label color={requestTimeLabelOptions(requestTimeInfo.requestTime)}>{formatCellText('request_time', item)}</Label>
         </TableCell>
       )}
       {columnVisibility.status_code && (
         <TableCell sx={{ p: '10px 8px' }}>
           <Label color={statusCodeColor(item.status_code)} variant="filled">
-            {item.status_code}
+            {formatCellText('status_code', item)}
           </Label>
         </TableCell>
       )}
-      {columnVisibility.error_code && <TableCell sx={{ p: '10px 8px' }}>{item.error_code || ''}</TableCell>}
-      {columnVisibility.error_type && <TableCell sx={{ p: '10px 8px' }}>{item.error_type || ''}</TableCell>}
-      {columnVisibility.request_path && <TableCell sx={{ p: '10px 8px' }}>{item.request_path || ''}</TableCell>}
-      {columnVisibility.source_ip && <TableCell sx={{ p: '10px 8px' }}>{item.source_ip || ''}</TableCell>}
+      {columnVisibility.error_code && <TableCell sx={{ p: '10px 8px' }}>{formatCellText('error_code', item)}</TableCell>}
+      {columnVisibility.error_type && <TableCell sx={{ p: '10px 8px' }}>{formatCellText('error_type', item)}</TableCell>}
+      {columnVisibility.request_path && <TableCell sx={{ p: '10px 8px' }}>{formatCellText('request_path', item)}</TableCell>}
+      {columnVisibility.source_ip && <TableCell sx={{ p: '10px 8px' }}>{formatCellText('source_ip', item)}</TableCell>}
       {columnVisibility.content && (
         <TableCell sx={{ p: '10px 8px', maxWidth: 300 }}>
-          <Tooltip title={item.content || ''} placement="top">
+          <Tooltip title={formatCellText('content', item)} placement="top">
             <Typography variant="body2" noWrap>
-              {item.content || ''}
+              {formatCellText('content', item)}
             </Typography>
           </Tooltip>
         </TableCell>
@@ -274,8 +258,16 @@ function ErrorLogRow({ item, userIsAdmin, columnVisibility }) {
   );
 }
 
-function viewModelName(model_name, isStream) {
-  if (!model_name) {
+ErrorLogRow.propTypes = {
+  item: logItemPropType,
+  userIsAdmin: PropTypes.bool,
+  columnVisibility: columnVisibilityPropType
+};
+
+function viewModelName(item) {
+  const { isStream, modelName } = getModelDisplayInfo(item);
+
+  if (!modelName) {
     return '';
   }
 
@@ -294,16 +286,16 @@ function viewModelName(model_name, isStream) {
           }
         }}
       >
-        <Label color="primary" variant="outlined" copyText={model_name}>
-          {model_name}
+        <Label color="primary" variant="outlined" copyText={modelName}>
+          {modelName}
         </Label>
       </Badge>
     );
   }
 
   return (
-    <Label color="primary" variant="outlined" copyText={model_name}>
-      {model_name}
+    <Label color="primary" variant="outlined" copyText={modelName}>
+      {modelName}
     </Label>
   );
 }
@@ -316,11 +308,9 @@ const MetadataTypography = styled(Typography)(({ theme }) => ({
   }
 }));
 
-function viewInput(item, t, totalInputTokens, totalOutputTokens, show, tokenDetails) {
-  const { prompt_tokens } = item;
-
-  if (!prompt_tokens) return '';
-  if (!show) return prompt_tokens;
+function viewInput(inputText, t, totalInputTokens, totalOutputTokens, show, tokenDetails) {
+  if (!inputText) return '';
+  if (!show) return inputText;
 
   const tooltipContent = tokenDetails.map(({ key, label, tokens, value, rate, labelParams }) => (
     <MetadataTypography key={key}>{`${t(label, labelParams)}: ${value} *  (${rate} - 1) = ${tokens}`}</MetadataTypography>
@@ -343,179 +333,33 @@ function viewInput(item, t, totalInputTokens, totalOutputTokens, show, tokenDeta
         placement="top"
         arrow
       >
-        <span style={{ cursor: 'help' }}>{prompt_tokens}</span>
+        <span style={{ cursor: 'help' }}>{inputText}</span>
       </Tooltip>
     </Badge>
   );
 }
 
-function calculateTokens(item) {
-  const { prompt_tokens, completion_tokens, metadata } = item;
-
-  if (!prompt_tokens || !metadata) {
-    return {
-      totalInputTokens: prompt_tokens || 0,
-      totalOutputTokens: completion_tokens || 0,
-      show: false,
-      tokenDetails: []
-    };
-  }
-
-  let totalInputTokens = prompt_tokens;
-  let totalOutputTokens = completion_tokens;
-  let show = false;
-
-  const input_audio_tokens = metadata?.input_audio_tokens_ratio || 1;
-  const output_audio_tokens = metadata?.output_audio_tokens_ratio || 1;
-  const input_image_tokens = metadata?.input_image_tokens_ratio || 1;
-  const output_image_tokens = metadata?.output_image_tokens_ratio || 1;
-
-  const cached_ratio = metadata?.cached_tokens_ratio || 1;
-  const cached_write_ratio = metadata?.cached_write_tokens_ratio || 1;
-  const cached_read_ratio = metadata?.cached_read_tokens_ratio || 1;
-  const reasoning_tokens = metadata?.reasoning_tokens_ratio || 1;
-  const input_text_tokens_ratio = metadata?.input_text_tokens_ratio || 1;
-  const output_text_tokens_ratio = metadata?.output_text_tokens_ratio || 1;
-
-  const tokenDetails = [
-    {
-      key: 'input_text_tokens',
-      label: 'logPage.inputTextTokens',
-      rate: input_text_tokens_ratio,
-      labelParams: { ratio: input_text_tokens_ratio }
-    },
-    {
-      key: 'output_text_tokens',
-      label: 'logPage.outputTextTokens',
-      rate: output_text_tokens_ratio,
-      labelParams: { ratio: output_text_tokens_ratio }
-    },
-    {
-      key: 'input_audio_tokens',
-      label: 'logPage.inputAudioTokens',
-      rate: input_audio_tokens,
-      labelParams: { ratio: input_audio_tokens }
-    },
-    {
-      key: 'output_audio_tokens',
-      label: 'logPage.outputAudioTokens',
-      rate: output_audio_tokens,
-      labelParams: { ratio: output_audio_tokens }
-    },
-    { key: 'cached_tokens', label: 'logPage.cachedTokens', rate: cached_ratio, labelParams: { ratio: cached_ratio } },
-    {
-      key: 'cached_write_tokens',
-      label: 'logPage.cachedWriteTokens',
-      rate: cached_write_ratio,
-      labelParams: { ratio: cached_write_ratio }
-    },
-    { key: 'cached_read_tokens', label: 'logPage.cachedReadTokens', rate: cached_read_ratio, labelParams: { ratio: cached_read_ratio } },
-    { key: 'reasoning_tokens', label: 'logPage.reasoningTokens', rate: reasoning_tokens, labelParams: { ratio: reasoning_tokens } },
-    {
-      key: 'input_image_tokens',
-      label: 'logPage.inputImageTokens',
-      rate: input_image_tokens,
-      labelParams: { ratio: input_image_tokens }
-    },
-    {
-      key: 'output_image_tokens',
-      label: 'logPage.outputImageTokens',
-      rate: output_image_tokens,
-      labelParams: { ratio: output_image_tokens }
-    }
-  ]
-    .filter(({ key }) => metadata[key] > 0)
-    .map(({ key, label, rate, labelParams }) => {
-      const tokens = Math.ceil(metadata[key] * (rate - 1));
-
-      // Check if this token type affects input or output totals
-      const isInputToken = [
-        'input_text_tokens',
-        'output_text_tokens',
-        'input_audio_tokens',
-        'cached_tokens',
-        'cached_write_tokens',
-        'cached_read_tokens',
-        'input_image_tokens'
-      ].includes(key);
-
-      const isOutputToken = ['output_audio_tokens', 'reasoning_tokens', 'output_image_tokens'].includes(key);
-
-      if (isInputToken) {
-        totalInputTokens += tokens;
-        show = true;
-      } else if (isOutputToken) {
-        totalOutputTokens += tokens;
-        show = true;
-      }
-
-      return { key, label, tokens, value: metadata[key], rate, labelParams };
-    });
-
-  return {
-    totalInputTokens,
-    totalOutputTokens,
-    show,
-    tokenDetails
-  };
-}
-
-function viewLogContent(item, t) {
-  // totalOutputTokens is passed but not used in this function
-  // Check if we have the necessary data to calculate prices
+function viewLogContent(item, detailLines) {
   if (!item?.metadata?.input_ratio) {
     const free = (item.quota === 0 || item.quota === undefined) && item.type === 2;
     return free ? (
       <Stack direction="column" spacing={0.3}>
-        <Label color={free ? 'success' : 'secondary'} variant="soft">
-          {t('logPage.content.free')}
+        <Label color="success" variant="soft">
+          {detailLines[0] || ''}
         </Label>
       </Stack>
     ) : (
-      <>{item.content || ''}</>
+      <>{detailLines[0] || ''}</>
     );
-  }
-
-  // Ensure we have valid values with appropriate defaults
-  const groupDiscount = item?.metadata?.group_ratio || 1;
-  const priceType = item?.metadata?.price_type || '';
-  const originalCompletionRatio = item?.metadata?.output_ratio || 0;
-  const originalInputRatio = item?.metadata?.input_ratio || 0;
-
-  let inputPriceInfo;
-  let outputPriceInfo = '';
-  if (priceType === 'times') {
-    // Calculate prices for 'times' price type
-    const inputPrice = calculatePrice(originalInputRatio, groupDiscount, true);
-
-    inputPriceInfo = t('logPage.content.times_price', {
-      times: inputPrice
-    });
-  } else {
-    // Calculate prices for a standard price type
-    const inputPrice = calculatePrice(originalInputRatio, groupDiscount, false);
-    const outputPrice = calculatePrice(originalCompletionRatio, groupDiscount, false);
-
-    inputPriceInfo = t('logPage.content.input_price', {
-      price: inputPrice
-    });
-    outputPriceInfo = t('logPage.content.output_price', {
-      price: outputPrice
-    });
   }
 
   return (
     <Stack direction="column" spacing={0.3}>
-      {inputPriceInfo && (
-        <Label color="info" variant="soft">
-          {inputPriceInfo}
+      {detailLines.map((line) => (
+        <Label key={line} color="info" variant="soft">
+          {line}
         </Label>
-      )}
-      {outputPriceInfo && (
-        <Label color="info" variant="soft">
-          {outputPriceInfo}
-        </Label>
-      )}
+      ))}
     </Stack>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { showError, trims } from 'utils/common';
+import { showError, showInfo, showSuccess } from 'utils/common';
 
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -25,10 +25,18 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { useSelector } from 'react-redux';
 import { useLogType } from './type/LogType';
+import {
+  DEFAULT_ERROR_LOG_COLUMN_VISIBILITY,
+  DEFAULT_LOG_COLUMN_VISIBILITY,
+  getColumnMenuItems,
+  getHeadLabels,
+  getVisibleColumns
+} from './utils/columns';
+import { appendCsvRows, buildCsvHeader, buildExportFilename, buildExportKeyword, downloadCsvBlob } from './utils/export';
+import { buildLogRequest, EXPORT_PAGE_SIZE, normalizeSort } from './utils/request';
 
-export default function Log() {
-  const { t } = useTranslation();
-  const originalKeyword = {
+function createOriginalKeyword() {
+  return {
     p: 0,
     username: '',
     token_name: '',
@@ -39,6 +47,15 @@ export default function Log() {
     channel_id: '',
     source_ip: ''
   };
+}
+
+function getErrorMessage(error) {
+  return error?.response?.data?.message || error?.message || 'unknown error';
+}
+
+export default function Log() {
+  const { t } = useTranslation();
+  const initialKeyword = createOriginalKeyword();
 
   const [page, setPage] = useState(0);
   const [order, setOrder] = useState('desc');
@@ -46,8 +63,9 @@ export default function Log() {
   const [rowsPerPage, setRowsPerPage] = useState(() => getPageSize('log'));
   const [listCount, setListCount] = useState(0);
   const [searching, setSearching] = useState(false);
-  const [toolBarValue, setToolBarValue] = useState(originalKeyword);
-  const [searchKeyword, setSearchKeyword] = useState(originalKeyword);
+  const [exporting, setExporting] = useState(false);
+  const [toolBarValue, setToolBarValue] = useState(() => ({ ...initialKeyword }));
+  const [searchKeyword, setSearchKeyword] = useState(() => ({ ...initialKeyword }));
   const [refreshFlag, setRefreshFlag] = useState(false);
   const { userGroup } = useSelector((state) => state.account);
   const theme = useTheme();
@@ -59,42 +77,19 @@ export default function Log() {
 
   const isErrorLog = searchKeyword.log_type === '5';
 
-  // 添加列显示设置相关状态
-  const [columnVisibility, setColumnVisibility] = useState({
-    created_at: true,
-    channel_id: true,
-    user_id: true,
-    group: true,
-    token_name: true,
-    type: true,
-    model_name: true,
-    duration: true,
-    message: true,
-    completion: true,
-    quota: true,
-    source_ip: true,
-    detail: true
-  });
-  const [errorLogColumnVisibility, setErrorLogColumnVisibility] = useState({
-    created_at: true,
-    channel_id: true,
-    user_id: true,
-    token_name: true,
-    model_name: true,
-    request_time: true,
-    status_code: true,
-    error_code: true,
-    error_type: true,
-    request_path: true,
-    source_ip: true,
-    content: true
-  });
+  const [columnVisibility, setColumnVisibility] = useState(() => ({ ...DEFAULT_LOG_COLUMN_VISIBILITY }));
+  const [errorLogColumnVisibility, setErrorLogColumnVisibility] = useState(() => ({ ...DEFAULT_ERROR_LOG_COLUMN_VISIBILITY }));
   const [columnMenuAnchor, setColumnMenuAnchor] = useState(null);
 
   const activeColumnVisibility = isErrorLog ? errorLogColumnVisibility : columnVisibility;
   const activeSetColumnVisibility = isErrorLog ? setErrorLogColumnVisibility : setColumnVisibility;
+  const columnMenuItems = getColumnMenuItems({ isErrorLog, userIsAdmin, t });
+  const headLabels = getHeadLabels({ isErrorLog, userIsAdmin, columnVisibility: activeColumnVisibility, t });
+  const selectableColumnIds = columnMenuItems.map((column) => column.id);
+  const areAllColumnsVisible = selectableColumnIds.length > 0 && selectableColumnIds.every((columnId) => activeColumnVisibility[columnId]);
+  const hasVisibleColumnsSelected = selectableColumnIds.some((columnId) => activeColumnVisibility[columnId]);
+  const exportButtonText = exporting ? t('logPage.exportingButton') : t('logPage.exportButton');
 
-  // 处理列显示菜单打开和关闭
   const handleColumnMenuOpen = (event) => {
     setColumnMenuAnchor(event.currentTarget);
   };
@@ -103,25 +98,25 @@ export default function Log() {
     setColumnMenuAnchor(null);
   };
 
-  // 处理列显示状态变更
   const handleColumnVisibilityChange = (columnId) => {
-    activeSetColumnVisibility({
-      ...activeColumnVisibility,
-      [columnId]: !activeColumnVisibility[columnId]
-    });
+    activeSetColumnVisibility((currentVisibility) => ({
+      ...currentVisibility,
+      [columnId]: !currentVisibility[columnId]
+    }));
   };
 
-  // 处理全选/取消全选列显示
   const handleSelectAllColumns = () => {
-    const allColumns = Object.keys(activeColumnVisibility);
-    const areAllVisible = allColumns.every((column) => activeColumnVisibility[column]);
+    const nextVisible = !areAllColumnsVisible;
 
-    const newColumnVisibility = {};
-    allColumns.forEach((column) => {
-      newColumnVisibility[column] = !areAllVisible;
+    activeSetColumnVisibility((currentVisibility) => {
+      const nextVisibility = { ...currentVisibility };
+
+      selectableColumnIds.forEach((columnId) => {
+        nextVisibility[columnId] = nextVisible;
+      });
+
+      return nextVisibility;
     });
-
-    activeSetColumnVisibility(newColumnVisibility);
   };
 
   const handleSort = (event, id) => {
@@ -144,72 +139,169 @@ export default function Log() {
   };
 
   const searchLogs = async () => {
+    const normalizedSort = normalizeSort(toolBarValue.log_type === '5', order, orderBy);
+
     setPage(0);
-    setSearchKeyword(toolBarValue);
-    setRefreshFlag(!refreshFlag);
+
+    if (normalizedSort.orderBy !== orderBy || normalizedSort.order !== order) {
+      setOrderBy(normalizedSort.orderBy);
+      setOrder(normalizedSort.order);
+    }
+
+    setSearchKeyword({ ...toolBarValue });
+    setRefreshFlag((flag) => !flag);
   };
 
   const handleToolBarValue = (event) => {
-    setToolBarValue({ ...toolBarValue, [event.target.name]: event.target.value });
+    setToolBarValue((currentValue) => ({
+      ...currentValue,
+      [event.target.name]: event.target.value
+    }));
   };
 
   const handleTabsChange = async (event, newValue) => {
     const updatedToolBarValue = { ...toolBarValue, log_type: newValue };
+    const normalizedSort = normalizeSort(newValue === '5', order, orderBy);
+
     setToolBarValue(updatedToolBarValue);
     setPage(0);
+
+    if (normalizedSort.orderBy !== orderBy || normalizedSort.order !== order) {
+      setOrderBy(normalizedSort.orderBy);
+      setOrder(normalizedSort.order);
+    }
+
     setSearchKeyword(updatedToolBarValue);
   };
 
   const fetchData = useCallback(
-    async (page, rowsPerPage, keyword, order, orderBy) => {
+    async (nextPage, nextRowsPerPage, keyword, nextOrder, nextOrderBy) => {
       setSearching(true);
-      keyword = trims(keyword);
-      try {
-        if (orderBy) {
-          orderBy = order === 'desc' ? '-' + orderBy : orderBy;
-        }
-        let url;
-        if (keyword.log_type === '5') {
-          url = '/api/error_log/';
-          delete keyword.log_type;
-        } else {
-          url = userIsAdmin ? '/api/log/' : '/api/log/self/';
-        }
-        if (!userIsAdmin) {
-          delete keyword.username;
-          delete keyword.channel_id;
-        }
 
-        const res = await API.get(url, {
+      try {
+        const request = buildLogRequest({
+          keyword,
+          userIsAdmin,
+          order: nextOrder,
+          orderBy: nextOrderBy
+        });
+        const res = await API.get(request.url, {
           params: {
-            page: page + 1,
-            size: rowsPerPage,
-            order: orderBy,
-            ...keyword
+            page: nextPage + 1,
+            size: nextRowsPerPage,
+            ...request.params
           }
         });
         const { success, message, data } = res.data;
+
         if (success) {
-          setListCount(data.total_count);
-          setLogs(data.data);
+          setListCount(data?.total_count || 0);
+          setLogs(data?.data || []);
         } else {
           showError(message);
         }
       } catch (error) {
         console.error(error);
+      } finally {
+        setSearching(false);
       }
-      setSearching(false);
     },
     [userIsAdmin]
   );
 
-  // 处理刷新
   const handleRefresh = async () => {
+    const resetKeyword = createOriginalKeyword();
+
     setOrderBy('created_at');
     setOrder('desc');
-    setToolBarValue(originalKeyword);
-    setSearchKeyword(originalKeyword);
-    setRefreshFlag(!refreshFlag);
+    setPage(0);
+    setToolBarValue(resetKeyword);
+    setSearchKeyword(resetKeyword);
+    setRefreshFlag((flag) => !flag);
+  };
+
+  const handleExportLogs = async () => {
+    if (searching || exporting) {
+      return;
+    }
+
+    setExporting(true);
+
+    try {
+      const exportStartedAt = dayjs().unix();
+      const exportKeyword = buildExportKeyword(searchKeyword, exportStartedAt);
+      const exportIsErrorLog = exportKeyword.log_type === '5';
+      const exportColumnVisibility = exportIsErrorLog ? errorLogColumnVisibility : columnVisibility;
+      const visibleColumns = getVisibleColumns({
+        isErrorLog: exportIsErrorLog,
+        userIsAdmin,
+        columnVisibility: exportColumnVisibility,
+        t
+      });
+
+      if (visibleColumns.length === 0) {
+        showInfo(t('logPage.exportNoVisibleColumns'));
+        return;
+      }
+
+      const request = buildLogRequest({
+        keyword: exportKeyword,
+        userIsAdmin,
+        order,
+        orderBy
+      });
+      const firstPage = await API.get(request.url, {
+        params: {
+          ...request.params,
+          page: 1,
+          size: EXPORT_PAGE_SIZE
+        }
+      });
+
+      if (!firstPage.data.success) {
+        throw new Error(firstPage.data.message || t('logPage.exportFailed'));
+      }
+
+      const firstResult = firstPage.data.data || {};
+      const totalCount = firstResult.total_count || 0;
+      if (totalCount === 0) {
+        showInfo(t('logPage.exportNoData'));
+        return;
+      }
+
+      const formatterContext = {
+        logTypes: LogType,
+        t,
+        userGroup
+      };
+      const blobParts = ['\uFEFF', buildCsvHeader(visibleColumns), '\r\n'];
+
+      appendCsvRows(blobParts, firstResult.data || [], visibleColumns, formatterContext);
+
+      const totalPages = Math.ceil(totalCount / EXPORT_PAGE_SIZE);
+      for (let pageNo = 2; pageNo <= totalPages; pageNo++) {
+        const res = await API.get(request.url, {
+          params: {
+            ...request.params,
+            page: pageNo,
+            size: EXPORT_PAGE_SIZE
+          }
+        });
+
+        if (!res.data.success) {
+          throw new Error(res.data.message || t('logPage.exportFailed'));
+        }
+
+        appendCsvRows(blobParts, res.data.data?.data || [], visibleColumns, formatterContext);
+      }
+
+      downloadCsvBlob(blobParts, buildExportFilename(exportKeyword.log_type, dayjs.unix(exportStartedAt)));
+      showSuccess(t('logPage.exportSuccess'));
+    } catch (error) {
+      showError(`${t('logPage.exportFailed')}: ${getErrorMessage(error)}`);
+    } finally {
+      setExporting(false);
+    }
   };
 
   useEffect(() => {
@@ -269,6 +361,15 @@ export default function Log() {
                   {t('logPage.searchButton')}
                 </Button>
 
+                <Button
+                  onClick={handleExportLogs}
+                  size="small"
+                  disabled={searching || exporting}
+                  startIcon={<Icon icon="solar:download-bold-duotone" width={18} />}
+                >
+                  {exportButtonText}
+                </Button>
+
                 <Button onClick={handleColumnMenuOpen} size="small" startIcon={<Icon icon="solar:settings-bold-duotone" width={18} />}>
                   {t('logPage.columnSettings')}
                 </Button>
@@ -281,13 +382,16 @@ export default function Log() {
                 justifyContent="space-around"
                 alignItems="center"
               >
-                <IconButton onClick={handleRefresh} size="small">
+                <IconButton onClick={handleRefresh} size="small" aria-label={t('logPage.refreshButton')}>
                   <Icon icon="solar:refresh-bold-duotone" width={18} />
                 </IconButton>
-                <IconButton onClick={searchLogs} size="small">
+                <IconButton onClick={searchLogs} size="small" aria-label={t('logPage.searchButton')}>
                   <Icon icon="solar:minimalistic-magnifer-line-duotone" width={18} />
                 </IconButton>
-                <IconButton onClick={handleColumnMenuOpen} size="small">
+                <IconButton onClick={handleExportLogs} size="small" disabled={searching || exporting} aria-label={exportButtonText}>
+                  <Icon icon="solar:download-bold-duotone" width={18} />
+                </IconButton>
+                <IconButton onClick={handleColumnMenuOpen} size="small" aria-label={t('logPage.columnSettings')}>
                   <Icon icon="solar:settings-bold-duotone" width={18} />
                 </IconButton>
               </Stack>
@@ -308,105 +412,23 @@ export default function Log() {
                 <Typography variant="subtitle2">{t('logPage.selectColumns')}</Typography>
               </MenuItem>
               <MenuItem onClick={handleSelectAllColumns} dense>
-                <Checkbox
-                  checked={Object.values(activeColumnVisibility).every((visible) => visible)}
-                  indeterminate={
-                    !Object.values(activeColumnVisibility).every((visible) => visible) &&
-                    Object.values(activeColumnVisibility).some((visible) => visible)
-                  }
-                  size="small"
-                />
+                <Checkbox checked={areAllColumnsVisible} indeterminate={!areAllColumnsVisible && hasVisibleColumnsSelected} size="small" />
                 <ListItemText primary={t('logPage.columnSelectAll')} />
               </MenuItem>
-              {(isErrorLog
-                ? [
-                    { id: 'created_at', label: t('logPage.timeLabel') },
-                    { id: 'channel_id', label: t('logPage.channelLabel'), adminOnly: true },
-                    { id: 'user_id', label: t('logPage.userLabel'), adminOnly: true },
-                    { id: 'token_name', label: t('logPage.tokenLabel') },
-                    { id: 'model_name', label: t('logPage.modelLabel') },
-                    { id: 'request_time', label: t('logPage.durationLabel') },
-                    { id: 'status_code', label: t('logPage.statusCode') },
-                    { id: 'error_code', label: t('logPage.errorCode') },
-                    { id: 'error_type', label: t('logPage.errorType') },
-                    { id: 'request_path', label: t('logPage.requestPath') },
-                    { id: 'source_ip', label: t('logPage.sourceIp') },
-                    { id: 'content', label: t('logPage.errorContent') }
-                  ]
-                : [
-                    { id: 'created_at', label: t('logPage.timeLabel') },
-                    { id: 'channel_id', label: t('logPage.channelLabel'), adminOnly: true },
-                    { id: 'user_id', label: t('logPage.userLabel'), adminOnly: true },
-                    { id: 'group', label: t('logPage.groupLabel') },
-                    { id: 'token_name', label: t('logPage.tokenLabel') },
-                    { id: 'type', label: t('logPage.typeLabel') },
-                    { id: 'model_name', label: t('logPage.modelLabel') },
-                    { id: 'duration', label: t('logPage.durationLabel') },
-                    { id: 'message', label: t('logPage.inputLabel') },
-                    { id: 'completion', label: t('logPage.outputLabel') },
-                    { id: 'quota', label: t('logPage.quotaLabel') },
-                    { id: 'source_ip', label: t('logPage.sourceIp') },
-                    { id: 'detail', label: t('logPage.detailLabel') }
-                  ]
-              ).map(
-                (column) =>
-                  (!column.adminOnly || userIsAdmin) && (
-                    <MenuItem key={column.id} onClick={() => handleColumnVisibilityChange(column.id)} dense>
-                      <Checkbox checked={activeColumnVisibility[column.id] || false} size="small" />
-                      <ListItemText primary={column.label} />
-                    </MenuItem>
-                  )
-              )}
+              {columnMenuItems.map((column) => (
+                <MenuItem key={column.id} onClick={() => handleColumnVisibilityChange(column.id)} dense>
+                  <Checkbox checked={activeColumnVisibility[column.id] || false} size="small" />
+                  <ListItemText primary={column.label} />
+                </MenuItem>
+              ))}
             </Menu>
           </Container>
         </Toolbar>
-        {searching && <LinearProgress />}
+        {(searching || exporting) && <LinearProgress />}
         <PerfectScrollbar component="div">
           <TableContainer sx={{ overflow: 'unset' }}>
             <Table sx={{ minWidth: 800 }}>
-              <KeywordTableHead
-                order={order}
-                orderBy={orderBy}
-                onRequestSort={handleSort}
-                headLabel={
-                  isErrorLog
-                    ? [
-                        { id: 'created_at', label: t('logPage.timeLabel'), disableSort: false, hide: !activeColumnVisibility.created_at },
-                        { id: 'channel_id', label: t('logPage.channelLabel'), disableSort: false, hide: !activeColumnVisibility.channel_id || !userIsAdmin },
-                        { id: 'user_id', label: t('logPage.userLabel'), disableSort: false, hide: !activeColumnVisibility.user_id || !userIsAdmin },
-                        { id: 'token_name', label: t('logPage.tokenLabel'), disableSort: false, hide: !activeColumnVisibility.token_name },
-                        { id: 'model_name', label: t('logPage.modelLabel'), disableSort: false, hide: !activeColumnVisibility.model_name },
-                        { id: 'request_time', label: t('logPage.durationLabel'), disableSort: true, hide: !activeColumnVisibility.request_time },
-                        { id: 'status_code', label: t('logPage.statusCode'), disableSort: false, hide: !activeColumnVisibility.status_code },
-                        { id: 'error_code', label: t('logPage.errorCode'), disableSort: false, hide: !activeColumnVisibility.error_code },
-                        { id: 'error_type', label: t('logPage.errorType'), disableSort: true, hide: !activeColumnVisibility.error_type },
-                        { id: 'request_path', label: t('logPage.requestPath'), disableSort: true, hide: !activeColumnVisibility.request_path },
-                        { id: 'source_ip', label: t('logPage.sourceIp'), disableSort: true, hide: !activeColumnVisibility.source_ip },
-                        { id: 'content', label: t('logPage.errorContent'), disableSort: true, hide: !activeColumnVisibility.content }
-                      ]
-                    : [
-                        { id: 'created_at', label: t('logPage.timeLabel'), disableSort: false, hide: !activeColumnVisibility.created_at },
-                        { id: 'channel_id', label: t('logPage.channelLabel'), disableSort: false, hide: !activeColumnVisibility.channel_id || !userIsAdmin },
-                        { id: 'user_id', label: t('logPage.userLabel'), disableSort: false, hide: !activeColumnVisibility.user_id || !userIsAdmin },
-                        { id: 'group', label: t('logPage.groupLabel'), disableSort: false, hide: !activeColumnVisibility.group },
-                        { id: 'token_name', label: t('logPage.tokenLabel'), disableSort: false, hide: !activeColumnVisibility.token_name },
-                        { id: 'type', label: t('logPage.typeLabel'), disableSort: false, hide: !activeColumnVisibility.type },
-                        { id: 'model_name', label: t('logPage.modelLabel'), disableSort: false, hide: !activeColumnVisibility.model_name },
-                        {
-                          id: 'duration',
-                          label: t('logPage.durationLabel'),
-                          tooltip: t('logPage.durationTooltip'),
-                          disableSort: true,
-                          hide: !activeColumnVisibility.duration
-                        },
-                        { id: 'message', label: t('logPage.inputLabel'), disableSort: true, hide: !activeColumnVisibility.message },
-                        { id: 'completion', label: t('logPage.outputLabel'), disableSort: true, hide: !activeColumnVisibility.completion },
-                        { id: 'quota', label: t('logPage.quotaLabel'), disableSort: true, hide: !activeColumnVisibility.quota },
-                        { id: 'source_ip', label: t('logPage.sourceIp'), disableSort: true, hide: !activeColumnVisibility.source_ip },
-                        { id: 'detail', label: t('logPage.detailLabel'), disableSort: true, hide: !activeColumnVisibility.detail }
-                      ]
-                }
-              />
+              <KeywordTableHead order={order} orderBy={orderBy} onRequestSort={handleSort} headLabel={headLabels} />
               <TableBody>
                 {logs.map((row, index) => (
                   <LogTableRow

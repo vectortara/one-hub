@@ -32,7 +32,7 @@ func RelayRerank(c *gin.Context) {
 
 	channel := relay.getProvider().GetChannel()
 	errCopy := *apiErr
-	go processChannelRelayError(c.Request.Context(), channel.Id, channel.Name, &errCopy, channel.Type, buildErrorLogInfo(c))
+	go processChannelRelayError(c.Request.Context(), channel.Id, channel.Name, &errCopy, channel.Type, channel.GetAutoBan(), buildErrorLogInfo(c))
 
 	retryTimes := config.RetryTimes
 	if done || !shouldRetry(c, apiErr, channel.Type) {
@@ -55,7 +55,7 @@ func RelayRerank(c *gin.Context) {
 		}
 
 		errCopyRetry := *apiErr
-		go processChannelRelayError(c.Request.Context(), channel.Id, channel.Name, &errCopyRetry, channel.Type, buildErrorLogInfo(c))
+		go processChannelRelayError(c.Request.Context(), channel.Id, channel.Name, &errCopyRetry, channel.Type, channel.GetAutoBan(), buildErrorLogInfo(c))
 		if done || !shouldRetry(c, apiErr, channel.Type) {
 			break
 		}

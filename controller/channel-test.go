@@ -201,8 +201,12 @@ func TestChannel(c *gin.Context) {
 	msg := ""
 	if openaiErr != nil {
 		if ShouldDisableChannel(channel.Type, openaiErr) {
-			msg = fmt.Sprintf("测速失败，已被禁用，原因：%s", err.Error())
-			DisableChannel(channel.Id, channel.Name, err.Error(), false)
+			if channel.GetAutoBan() {
+				msg = fmt.Sprintf("测速失败，已被禁用，原因：%s", err.Error())
+				DisableChannel(channel.Id, channel.Name, err.Error(), false)
+			} else {
+				msg = fmt.Sprintf("测速失败，自动禁用已关闭，跳过禁用，原因：%s", err.Error())
+			}
 		} else {
 			msg = fmt.Sprintf("测速失败，原因：%s", err.Error())
 		}
@@ -275,14 +279,22 @@ func testAllChannels(isNotify bool) error {
 				// 如果通道启用状态，但是返回了错误 或者 响应时间超过阈值，需要判断是否需要禁用
 				if milliseconds > disableThreshold {
 					errMsg := fmt.Sprintf("响应时间 %.2fs 超过阈值 %.2fs ", float64(milliseconds)/1000.0, float64(disableThreshold)/1000.0)
-					sendMessage += fmt.Sprintf("- %s \n\n- 禁用\n\n", errMsg)
-					DisableChannel(channel.Id, channel.Name, errMsg, false)
+					if channel.GetAutoBan() {
+						sendMessage += fmt.Sprintf("- %s \n\n- 禁用\n\n", errMsg)
+						DisableChannel(channel.Id, channel.Name, errMsg, false)
+					} else {
+						sendMessage += fmt.Sprintf("- %s \n\n- 跳过禁用\n\n", errMsg)
+					}
 					continue
 				}
 
 				if ShouldDisableChannel(channel.Type, openaiErr) {
-					sendMessage += fmt.Sprintf("- 已被禁用，原因：%s\n\n", utils.EscapeMarkdownText(err.Error()))
-					DisableChannel(channel.Id, channel.Name, err.Error(), false)
+					if channel.GetAutoBan() {
+						sendMessage += fmt.Sprintf("- 已被禁用，原因：%s\n\n", utils.EscapeMarkdownText(err.Error()))
+						DisableChannel(channel.Id, channel.Name, err.Error(), false)
+					} else {
+						sendMessage += fmt.Sprintf("- 命中自动禁用条件，原因：%s\n\n- 跳过禁用\n\n", utils.EscapeMarkdownText(err.Error()))
+					}
 					continue
 				}
 

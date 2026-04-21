@@ -1416,6 +1416,7 @@
     "requiredName": "Name is required"
   },
   "仅支持聊天": "Chat only",
+  "是否自动禁用": "Allow automatic disable",
   "从Cohere获取模型列表": "Get list of models from Cohere",
   "从Deepseek获取模型列表": "Get model list from Deepseek",
   "从Gemini获取模型列表": "Get model list from Gemini",
@@ -1437,6 +1438,7 @@
   "地址填写midjourney-proxy部署的地址": "Address: fill in the address of midjourney-proxy deployment",
   "声音映射": "sound mapping",
   "如果选择了仅支持聊天，那么遇到有函数调用的请求会跳过该渠道": "If you choose to support chat only, the channel will be skipped when encountering requests with function calls.",
+  "仅当自动禁用开启时有效，关闭后不会自动禁用该渠道": "Only takes effect when automatic disable is enabled. When off, this channel will not be disabled automatically.",
   "密钥": "key",
   "密钥填写Suno-API的密钥，如果没有设置密钥，可以随便填": "Fill in the key of Suno-API for the key. If there is no key set, you can fill it in casually.",
   "密钥填写midjourney-proxy的密钥，如果没有设置密钥，可以随便填": "The key is the key of midjourney-proxy. If the key is not set, you can fill it in casually.",

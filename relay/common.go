@@ -561,9 +561,17 @@ func buildErrorLogInfo(c *gin.Context) *model.ErrorLogInfo {
 	}
 }
 
-func processChannelRelayError(ctx context.Context, channelId int, channelName string, err *types.OpenAIErrorWithStatusCode, channelType int, info *model.ErrorLogInfo) {
+func processChannelRelayError(
+	ctx context.Context,
+	channelId int,
+	channelName string,
+	err *types.OpenAIErrorWithStatusCode,
+	channelType int,
+	autoBan bool,
+	info *model.ErrorLogInfo,
+) {
 	logger.LogError(ctx, fmt.Sprintf("relay error (channel #%d(%s)): %s", channelId, channelName, err.Message))
-	if controller.ShouldDisableChannel(channelType, err) {
+	if autoBan && controller.ShouldDisableChannel(channelType, err) {
 		controller.DisableChannel(channelId, channelName, err.Message, true)
 	}
 	if config.ErrorLogEnabled && info != nil && model.ShouldRecordErrorLog(err) {

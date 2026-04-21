@@ -271,11 +271,16 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
       baseApiUrl = '/api/channel_tag/' + encodeURIComponent(channelId);
     }
 
+    const payload = { ...values, models: modelsStr };
+    if (isTag) {
+      delete payload.auto_ban;
+    }
+
     try {
       if (channelId) {
-        res = await API.put(baseApiUrl, { ...values, id: parseInt(channelId), models: modelsStr });
+        res = await API.put(baseApiUrl, { ...payload, id: parseInt(channelId) });
       } else {
-        res = await API.post(baseApiUrl, { ...values, models: modelsStr });
+        res = await API.post(baseApiUrl, payload);
       }
       const { success, message } = res.data;
       if (success) {
@@ -376,6 +381,7 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
         }
 
         data.base_url = data.base_url ?? '';
+        data.auto_ban = data.auto_ban ?? true;
         data.is_edit = true;
         if (data.plugin === null) {
           data.plugin = {};
@@ -1019,6 +1025,22 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
                       label={customizeT(inputLabel.only_chat)}
                     />
                     <FormHelperText id="helper-tex-only_chat_model-label"> {customizeT(inputPrompt.only_chat)} </FormHelperText>
+                  </FormControl>
+                )}
+                {!isTag && inputPrompt.auto_ban && (
+                  <FormControl fullWidth>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={values.auto_ban !== false}
+                          onChange={(event) => {
+                            setFieldValue('auto_ban', event.target.checked);
+                          }}
+                        />
+                      }
+                      label={customizeT(inputLabel.auto_ban)}
+                    />
+                    <FormHelperText id="helper-tex-auto_ban-label">{customizeT(inputPrompt.auto_ban)}</FormHelperText>
                   </FormControl>
                 )}
                 {inputPrompt.pre_cost && (

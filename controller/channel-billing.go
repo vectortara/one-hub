@@ -121,7 +121,7 @@ func updateAllChannelsBalance() error {
 			continue
 		} else {
 			// err is nil & balance <= 0 means quota is used up
-			if balance <= 0 {
+			if balance <= 0 && channel.GetAutoBan() {
 				DisableChannel(channel.Id, channel.Name, "余额不足", true)
 			}
 		}

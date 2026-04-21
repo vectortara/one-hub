@@ -55,7 +55,7 @@ func Relay(c *gin.Context) {
 	}
 
 	channel := relay.getProvider().GetChannel()
-	go processChannelRelayError(c.Request.Context(), channel.Id, channel.Name, apiErr, channel.Type, buildErrorLogInfo(c))
+	go processChannelRelayError(c.Request.Context(), channel.Id, channel.Name, apiErr, channel.Type, channel.GetAutoBan(), buildErrorLogInfo(c))
 
 	retryTimes := config.RetryTimes
 	if done || !shouldRetry(c, apiErr, channel.Type) {
@@ -86,7 +86,7 @@ func Relay(c *gin.Context) {
 			metrics.RecordProvider(c, 200)
 			return
 		}
-		go processChannelRelayError(c.Request.Context(), channel.Id, channel.Name, apiErr, channel.Type, buildErrorLogInfo(c))
+		go processChannelRelayError(c.Request.Context(), channel.Id, channel.Name, apiErr, channel.Type, channel.GetAutoBan(), buildErrorLogInfo(c))
 		if done || !shouldRetry(c, apiErr, channel.Type) {
 			break
 		}

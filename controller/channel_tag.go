@@ -72,6 +72,7 @@ func UpdateChannelsTag(c *gin.Context) {
 		common.APIRespondWithError(c, http.StatusOK, err)
 		return
 	}
+	channel.AutoBan = nil
 
 	err = model.UpdateChannelsTag(tag, &channel)
 	if err != nil {

@@ -41,6 +41,7 @@ type Channel struct {
 	PreCost            int     `json:"pre_cost" form:"pre_cost" gorm:"default:1"`
 	CompatibleResponse bool    `json:"compatible_response" gorm:"default:false"`
 	AllowExtraBody     bool    `json:"allow_extra_body" form:"allow_extra_body" gorm:"default:false"`
+	AutoBan            *bool   `json:"auto_ban" form:"auto_ban" gorm:"default:true"`
 
 	DisabledStream *datatypes.JSONSlice[string] `json:"disabled_stream,omitempty" gorm:"type:json"`
 
@@ -246,6 +247,13 @@ func (channel *Channel) GetPriority() int64 {
 		return 0
 	}
 	return *channel.Priority
+}
+
+func (channel *Channel) GetAutoBan() bool {
+	if channel.AutoBan == nil {
+		return true
+	}
+	return *channel.AutoBan
 }
 
 func (channel *Channel) GetBaseURL() string {

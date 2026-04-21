@@ -124,6 +124,10 @@ func InitDB() (err error) {
 		if err != nil {
 			return err
 		}
+		err = backfillChannelAutoBan(db)
+		if err != nil {
+			return err
+		}
 		err = db.AutoMigrate(&Token{})
 		if err != nil {
 			return err
@@ -220,6 +224,16 @@ func InitDB() (err error) {
 		logger.FatalLog(err)
 	}
 	return err
+}
+
+func backfillChannelAutoBan(db *gorm.DB) error {
+	if !db.Migrator().HasColumn(&Channel{}, "auto_ban") {
+		return nil
+	}
+
+	return db.Model(&Channel{}).
+		Where("auto_ban IS NULL").
+		Update("auto_ban", true).Error
 }
 
 // func MigrateDB(db *gorm.DB) error {

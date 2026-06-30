@@ -506,6 +506,20 @@
       "calculationNote": "PS: This system calculates based on points, and all amounts are converted from points. 1 point = $0.000002, with a minimum spending of 1 point. This calculation is for reference only; actual charges may vary.",
       "times": "times"
     },
+    "retryDetail": {
+      "title": "Retry Details",
+      "attemptCount": "Attempt Count",
+      "retryCount": "Retry Count",
+      "totalDuration": "Total Duration",
+      "success": "Success",
+      "failed": "Failed",
+      "channel": "Channel",
+      "duration": "Duration",
+      "statusCode": "Status Code",
+      "errorCode": "Error Code",
+      "errorType": "Error Type",
+      "message": "Message"
+    },
     "cachedReadTokens": "Cache read Tokens (* {{ ratio }})",
     "cachedWriteTokens": "Write tokens to cache (* {{ ratio }})",
     "reasoningTokens": "Deduction Tokens (* {{ ratio }})"

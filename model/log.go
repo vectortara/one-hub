@@ -6,6 +6,7 @@ import (
 	"one-api/common/config"
 	"one-api/common/limit"
 	"one-api/common/logger"
+	"one-api/common/logmeta"
 	"one-api/common/utils"
 
 	"gorm.io/datatypes"
@@ -99,6 +100,7 @@ func RecordConsumeLog(
 		return
 	}
 
+	metadata = mergeRetryTraceFromContext(ctx, metadata)
 	username, _ := CacheGetUsername(userId)
 
 	log := &Log{
@@ -136,6 +138,21 @@ func RecordConsumeLog(
 	if totalTokens > 0 {
 		limit.RecordTPM(userId, totalTokens)
 	}
+}
+
+func mergeRetryTraceFromContext(ctx context.Context, metadata map[string]any) map[string]any {
+	retryTrace := logmeta.GetRetryTrace(ctx)
+	if len(retryTrace) == 0 {
+		return metadata
+	}
+
+	mergedMetadata := make(map[string]any, len(metadata)+1)
+	for key, value := range metadata {
+		mergedMetadata[key] = value
+	}
+	mergedMetadata["retry_trace"] = retryTrace
+
+	return mergedMetadata
 }
 
 type LogsListParams struct {

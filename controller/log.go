@@ -7,67 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/datatypes"
 )
-
-type LogViewOptions struct {
-	IncludeRetryTrace bool
-}
-
-func BuildLogDataResult(result *model.DataResult[model.Log], opts LogViewOptions) *model.DataResult[model.Log] {
-	if result == nil {
-		return nil
-	}
-
-	clonedResult := &model.DataResult[model.Log]{
-		Page:       result.Page,
-		Size:       result.Size,
-		TotalCount: result.TotalCount,
-	}
-	if result.Data == nil {
-		return clonedResult
-	}
-
-	clonedData := make([]*model.Log, 0, len(*result.Data))
-	for _, item := range *result.Data {
-		clonedData = append(clonedData, BuildLogItem(item, opts))
-	}
-	clonedResult.Data = &clonedData
-
-	return clonedResult
-}
-
-func BuildLogItem(log *model.Log, opts LogViewOptions) *model.Log {
-	if log == nil {
-		return nil
-	}
-
-	clonedLog := *log
-	if log.Channel != nil {
-		channelCopy := *log.Channel
-		clonedLog.Channel = &channelCopy
-	}
-	clonedLog.Metadata = sanitizeLogMetadataForView(log.Metadata, opts)
-
-	return &clonedLog
-}
-
-func sanitizeLogMetadataForView(meta datatypes.JSONType[map[string]any], opts LogViewOptions) datatypes.JSONType[map[string]any] {
-	rawMeta := meta.Data()
-	if rawMeta == nil {
-		return meta
-	}
-
-	clonedMeta := make(map[string]any, len(rawMeta))
-	for key, value := range rawMeta {
-		clonedMeta[key] = value
-	}
-	if !opts.IncludeRetryTrace {
-		delete(clonedMeta, "retry_trace")
-	}
-
-	return datatypes.NewJSONType(clonedMeta)
-}
 
 func GetLogsList(c *gin.Context) {
 	var params model.LogsListParams
@@ -81,11 +21,10 @@ func GetLogsList(c *gin.Context) {
 		common.APIRespondWithError(c, http.StatusOK, err)
 		return
 	}
-	data := BuildLogDataResult(logs, LogViewOptions{IncludeRetryTrace: true})
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    data,
+		"data":    logs,
 	})
 }
 
@@ -103,11 +42,10 @@ func GetUserLogsList(c *gin.Context) {
 		common.APIRespondWithError(c, http.StatusOK, err)
 		return
 	}
-	data := BuildLogDataResult(logs, LogViewOptions{IncludeRetryTrace: false})
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    data,
+		"data":    logs,
 	})
 }
 

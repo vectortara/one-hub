@@ -122,40 +122,17 @@ func RelayHandler(relay RelayBaseInterface) (err *types.OpenAIErrorWithStatusCod
 		return
 	}
 
-	channel := relay.getProvider().GetChannel()
-	attemptStartedAt := time.Now()
-
 	err, done = relay.send()
 	// 最后处理流式中断时计算tokens
 	if usage.CompletionTokens == 0 && usage.TextBuilder.Len() > 0 {
 		usage.CompletionTokens = common.CountTokenText(usage.TextBuilder.String(), relay.getModelName())
 		usage.TotalTokens = usage.PromptTokens + usage.CompletionTokens
 	}
-
-	attemptInput := relay_util.RetryAttemptInput{
-		StartedAt: attemptStartedAt,
-		Success:   err == nil,
-	}
-	if channel != nil {
-		attemptInput.ChannelId = channel.Id
-		attemptInput.ChannelName = channel.Name
-	}
-	if err == nil {
-		attemptInput.StatusCode = http.StatusOK
-	} else {
-		attemptInput.StatusCode = err.StatusCode
-		attemptInput.ErrorCode = relay_util.NormalizeRetryErrorCode(err.OpenAIError.Code)
-		attemptInput.ErrorType = err.OpenAIError.Type
-		attemptInput.Message = err.OpenAIError.Message
-	}
-	relay_util.AppendRetryAttempt(relay.getContext(), attemptInput)
-
 	if err != nil {
 		quota.Undo(relay.getContext())
 		return
 	}
 
-	relay_util.AttachRetryTraceToRequestContext(relay.getContext())
 	quota.SetFirstResponseTime(relay.GetFirstResponseTime())
 
 	quota.Consume(relay.getContext(), usage, relay.IsStream())

@@ -1,8 +1,7 @@
-import PropTypes from 'prop-types';
+import { Box, Typography, IconButton } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { Box, IconButton, Typography } from '@mui/material';
-
 import { renderQuota } from 'utils/common';
+import PropTypes from 'prop-types';
 
 // Helper function to calculate the original quota based on actual price and group ratio
 export function calculateOriginalQuota(item) {
@@ -28,7 +27,7 @@ export function calculateOriginalQuota(item) {
 }
 
 // QuotaWithDetailRow is only responsible for the price in the main row and the small triangle
-export default function QuotaWithDetailRow({ item, expanded, onToggle }) {
+export default function QuotaWithDetailRow({ item, open, setOpen }) {
   const groupRatio = item?.metadata?.group_ratio || 1;
   // Calculate the original quota based on the formula
   const originalQuota = calculateOriginalQuota(item);
@@ -36,7 +35,7 @@ export default function QuotaWithDetailRow({ item, expanded, onToggle }) {
   const quota = item.quota || 0;
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Box onClick={onToggle} sx={{ display: 'flex', flexDirection: 'column', mr: 1, cursor: 'pointer' }}>
+      <Box onClick={() => setOpen((o) => !o)} sx={{ display: 'flex', flexDirection: 'column', mr: 1, cursor: 'pointer' }}>
         {groupRatio < 1 ? (
           <>
             <Typography
@@ -61,17 +60,17 @@ export default function QuotaWithDetailRow({ item, expanded, onToggle }) {
       </Box>
       <IconButton
         size="small"
-        onClick={onToggle}
+        onClick={() => setOpen((o) => !o)}
         sx={{
           ml: 0.5,
-          bgcolor: (theme) => (expanded ? theme.palette.action.hover : 'transparent'),
+          bgcolor: (theme) => (open ? theme.palette.action.hover : 'transparent'),
           '&:hover': { bgcolor: (theme) => theme.palette.action.hover }
         }}
       >
         <ExpandMoreIcon
-          sx={{
+          style={{
             transition: '0.2s',
-            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)'
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)'
           }}
           fontSize="small"
         />
@@ -89,6 +88,6 @@ QuotaWithDetailRow.propTypes = {
       origin_quota: PropTypes.number
     })
   }).isRequired,
-  expanded: PropTypes.bool.isRequired,
-  onToggle: PropTypes.func.isRequired
+  open: PropTypes.bool.isRequired,
+  setOpen: PropTypes.func.isRequired
 };

@@ -1,11 +1,10 @@
 import PropTypes from 'prop-types';
+import { useMemo, useState } from 'react';
 import { ArrowForward } from '@mui/icons-material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { useEffect, useMemo, useState } from 'react';
 
 import Badge from '@mui/material/Badge';
 
-import { Collapse, IconButton, Stack, TableCell, TableRow, Tooltip, Typography } from '@mui/material';
+import { TableRow, TableCell, Stack, Collapse, Tooltip, Typography } from '@mui/material';
 
 import { renderQuota } from 'utils/common';
 import Label from 'ui-component/Label';
@@ -13,12 +12,10 @@ import { useLogType } from '../type/LogType';
 import { useTranslation } from 'react-i18next';
 import QuotaWithDetailRow from './QuotaWithDetailRow';
 import QuotaWithDetailContent from './QuotaWithDetailContent';
-import RetryWithDetailContent from './RetryWithDetailContent';
 import { styled } from '@mui/material/styles';
 import {
   calculateTokens,
   formatCellText,
-  formatChannelText as formatDefaultChannelText,
   formatInputText,
   formatTypeText,
   getDetailTextLines,
@@ -31,15 +28,7 @@ import {
 } from '../utils/displayText';
 
 const logItemPropType = PropTypes.shape({
-  channel: PropTypes.shape({
-    name: PropTypes.string
-  }),
   id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  metadata: PropTypes.shape({
-    retry_trace: PropTypes.shape({
-      attempts: PropTypes.array
-    })
-  }),
   quota: PropTypes.number,
   status_code: PropTypes.number,
   token_name: PropTypes.string,
@@ -69,40 +58,6 @@ const columnVisibilityPropType = PropTypes.shape({
   user_id: PropTypes.bool
 });
 
-const PANEL_QUOTA = 'quota';
-const PANEL_RETRY = 'retry';
-
-function formatRetryAttemptChannelText(attempt) {
-  const channelId = attempt?.channel_id ?? '';
-  const channelName = attempt?.channel_name || '';
-
-  if (channelId !== '' && channelName) {
-    return `${channelId}(${channelName})`;
-  }
-
-  if (channelId !== '') {
-    return `${channelId}`;
-  }
-
-  if (channelName) {
-    return `(${channelName})`;
-  }
-
-  return '';
-}
-
-function formatRetryChannelText(item, retryAttempts) {
-  if (!Array.isArray(retryAttempts) || retryAttempts.length <= 1) {
-    return formatDefaultChannelText(item);
-  }
-
-  const retryChannelText = retryAttempts
-    .map((attempt) => formatRetryAttemptChannelText(attempt))
-    .filter(Boolean)
-    .join('->');
-  return retryChannelText || formatDefaultChannelText(item);
-}
-
 export default function LogTableRow({ item, userIsAdmin, userGroup, columnVisibility, isErrorLog = false }) {
   if (isErrorLog) {
     return <ErrorLogRow item={item} userIsAdmin={userIsAdmin} columnVisibility={columnVisibility} />;
@@ -119,12 +74,6 @@ function NormalLogRow({ item, userIsAdmin, userGroup, columnVisibility }) {
   const inputText = formatInputText(item);
   const { totalInputTokens, totalOutputTokens, show, tokenDetails } = useMemo(() => calculateTokens(item), [item]);
   const detailLines = getDetailTextLines(item, t);
-  const retryTrace = item?.metadata?.retry_trace;
-  const retryAttempts = Array.isArray(retryTrace?.attempts) ? retryTrace.attempts : [];
-  const hasRetryTraceData = item.type === 2 && retryAttempts.length > 1;
-  const channelText = formatRetryChannelText(item, hasRetryTraceData ? retryAttempts : []);
-  const hasVisibleRetryTrigger = userIsAdmin && columnVisibility.channel_id && hasRetryTraceData;
-  const hasVisibleQuotaTrigger = item.type === 2 && columnVisibility.quota;
 
   // 计算当前显示的列数
   const colCount = Object.entries(columnVisibility).filter(
@@ -132,63 +81,15 @@ function NormalLogRow({ item, userIsAdmin, userGroup, columnVisibility }) {
   ).length;
 
   // 展开状态（仅type=2时才有展开）
-  const [expandedPanel, setExpandedPanel] = useState(null);
-
-  const toggleExpandedPanel = (panel) => {
-    setExpandedPanel((currentPanel) => (currentPanel === panel ? null : panel));
-  };
-
-  useEffect(() => {
-    if (expandedPanel === PANEL_QUOTA && !hasVisibleQuotaTrigger) {
-      setExpandedPanel(null);
-    }
-
-    if (expandedPanel === PANEL_RETRY && !hasVisibleRetryTrigger) {
-      setExpandedPanel(null);
-    }
-  }, [expandedPanel, hasVisibleQuotaTrigger, hasVisibleRetryTrigger]);
-
-  const showExpandRow = item.type === 2 && (hasVisibleQuotaTrigger || hasVisibleRetryTrigger || expandedPanel !== null);
+  const [open, setOpen] = useState(false);
+  const showExpand = item.type === 2 && columnVisibility.quota;
 
   return (
     <>
       <TableRow tabIndex={item.id}>
         {columnVisibility.created_at && <TableCell sx={{ p: '10px 8px' }}>{formatCellText('created_at', item)}</TableCell>}
 
-        {userIsAdmin && columnVisibility.channel_id && (
-          <TableCell sx={{ p: '10px 8px' }}>
-            <Stack direction="row" spacing={1} alignItems="flex-start" justifyContent="space-between" sx={{ minWidth: 0 }}>
-              <Tooltip title={channelText || ''} placement="top" disableHoverListener={!channelText}>
-                <Typography variant="body2" sx={{ minWidth: 0, wordBreak: 'break-all' }}>
-                  {channelText}
-                </Typography>
-              </Tooltip>
-              {hasVisibleRetryTrigger && (
-                <Tooltip title={t('logPage.retryDetail.title')} placement="top">
-                  <IconButton
-                    size="small"
-                    aria-label={t('logPage.retryDetail.title')}
-                    onClick={() => toggleExpandedPanel(PANEL_RETRY)}
-                    sx={{
-                      ml: 0.5,
-                      flexShrink: 0,
-                      bgcolor: (theme) => (expandedPanel === PANEL_RETRY ? theme.palette.action.hover : 'transparent'),
-                      '&:hover': { bgcolor: (theme) => theme.palette.action.hover }
-                    }}
-                  >
-                    <ExpandMoreIcon
-                      sx={{
-                        transition: '0.2s',
-                        transform: expandedPanel === PANEL_RETRY ? 'rotate(180deg)' : 'rotate(0deg)'
-                      }}
-                      fontSize="small"
-                    />
-                  </IconButton>
-                </Tooltip>
-              )}
-            </Stack>
-          </TableCell>
-        )}
+        {userIsAdmin && columnVisibility.channel_id && <TableCell sx={{ p: '10px 8px' }}>{formatCellText('channel_id', item)}</TableCell>}
         {userIsAdmin && columnVisibility.user_id && (
           <TableCell sx={{ p: '10px 8px' }}>
             <Label color="default" variant="outlined" copyText={item.username}>
@@ -258,7 +159,7 @@ function NormalLogRow({ item, userIsAdmin, userGroup, columnVisibility }) {
         {columnVisibility.quota && (
           <TableCell sx={{ p: '10px 8px' }}>
             {item.type === 2 ? (
-              <QuotaWithDetailRow item={item} expanded={expandedPanel === PANEL_QUOTA} onToggle={() => toggleExpandedPanel(PANEL_QUOTA)} />
+              <QuotaWithDetailRow item={item} open={open} setOpen={setOpen} />
             ) : item.quota ? (
               renderQuota(item.quota, 6)
             ) : (
@@ -270,19 +171,17 @@ function NormalLogRow({ item, userIsAdmin, userGroup, columnVisibility }) {
         {columnVisibility.detail && <TableCell sx={{ p: '10px 8px' }}>{viewLogContent(item, detailLines)}</TableCell>}
       </TableRow>
       {/* 展开行 */}
-      {showExpandRow && (
+      {showExpand && (
         <TableRow>
           <TableCell colSpan={colCount} sx={{ p: 0, border: 0, bgcolor: 'transparent' }}>
-            <Collapse in={expandedPanel !== null} timeout="auto" unmountOnExit>
-              {expandedPanel === PANEL_QUOTA && (
-                <QuotaWithDetailContent
-                  item={item}
-                  userGroup={userGroup}
-                  totalInputTokens={totalInputTokens}
-                  totalOutputTokens={totalOutputTokens}
-                />
-              )}
-              {expandedPanel === PANEL_RETRY && <RetryWithDetailContent retryTrace={retryTrace} />}
+            <Collapse in={open} timeout="auto" unmountOnExit>
+              <QuotaWithDetailContent
+                item={item}
+                userGroup={userGroup}
+                t={t}
+                totalInputTokens={totalInputTokens}
+                totalOutputTokens={totalOutputTokens}
+              />
             </Collapse>
           </TableCell>
         </TableRow>

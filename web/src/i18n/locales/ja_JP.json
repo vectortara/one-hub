@@ -483,20 +483,6 @@
       "calculationNote": "PS：このシステムはポイントに基づいて計算され、すべての金額はポイント換算であり、1ポイント＝$0.000002です。最低消費額は1ポイントであり、この計算手順は参考用として提供されます。実際の料金が優先されます。",
       "times": "倍"
     },
-    "retryDetail": {
-      "title": "リトライ詳細",
-      "attemptCount": "試行回数",
-      "retryCount": "リトライ回数",
-      "totalDuration": "合計時間",
-      "success": "成功",
-      "failed": "失敗",
-      "channel": "チャネル",
-      "duration": "所要時間",
-      "statusCode": "ステータスコード",
-      "errorCode": "エラーコード",
-      "errorType": "エラータイプ",
-      "message": "メッセージ"
-    },
     "cachedReadTokens": "キャッシュからトークンを読み取ります（* {{ ratio }} )",
     "cachedWriteTokens": "トークンのキャッシュ書き込み（* {{ ratio }} ）",
     "reasoningTokens": "推理トークン"

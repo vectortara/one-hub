@@ -7,7 +7,6 @@
 
 # testing
 /coverage
-/src/views/Log/utils/*.test.js
 
 # production
 /build

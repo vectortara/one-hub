@@ -1,13 +1,14 @@
-import { Box, Typography } from '@mui/material';
+import PropTypes from 'prop-types';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import PercentIcon from '@mui/icons-material/Percent';
-import CreditCardIcon from '@mui/icons-material/CreditCard';
 import CalculateIcon from '@mui/icons-material/Calculate';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
+import PercentIcon from '@mui/icons-material/Percent';
+import { Box, Typography } from '@mui/material';
 import Decimal from 'decimal.js';
+import { useTranslation } from 'react-i18next';
+
 import { renderQuota } from 'utils/common';
 import { calculateOriginalQuota } from './QuotaWithDetailRow';
-import { useTranslation } from 'react-i18next';
-import PropTypes from 'prop-types';
 
 // Function to calculate price
 export function calculatePrice(ratio, groupDiscount, isTimes) {
@@ -32,9 +33,51 @@ export function calculatePrice(ratio, groupDiscount, isTimes) {
   return priceString;
 }
 
+export const detailPanelContainerSx = {
+  mt: 2,
+  mb: 2,
+  mx: 2,
+  boxShadow: (theme) => `0 2px 8px 0 ${theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.04)'}`,
+  borderRadius: 2,
+  background: (theme) => theme.palette.background.paper,
+  p: 2,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 2
+};
+
+export const detailPanelScrollableRowSx = {
+  display: 'flex',
+  gap: 2,
+  overflowX: 'auto',
+  '&::-webkit-scrollbar': {
+    height: '6px'
+  },
+  '&::-webkit-scrollbar-thumb': {
+    backgroundColor: (theme) => theme.palette.divider,
+    borderRadius: '3px'
+  },
+  '&::-webkit-scrollbar-track': {
+    backgroundColor: 'transparent'
+  }
+};
+
+export const detailPanelSectionSx = {
+  p: 2,
+  borderRadius: 1,
+  background: (theme) => (theme.palette.mode === 'dark' ? theme.palette.background.default : '#f7f8fa')
+};
+
+const detailPanelInfoCardSx = {
+  flex: 1,
+  minWidth: 0,
+  p: 2,
+  borderRadius: 1,
+  background: (theme) => (theme.palette.mode === 'dark' ? theme.palette.background.default : '#fafbfc')
+};
+
 // QuotaWithDetailContent is responsible for rendering the detailed content
 export default function QuotaWithDetailContent({ item, userGroup, totalInputTokens, totalOutputTokens }) {
-  console.log(item);
   const { t } = useTranslation();
   // Calculate the original quota based on the formula
   const originalQuota = calculateOriginalQuota(item);
@@ -93,48 +136,11 @@ export default function QuotaWithDetailContent({ item, userGroup, totalInputToke
     savePercent = `${t('logPage.quotaDetail.saved')}${((1 - quota / originalQuota) * 100).toFixed(0)}%`;
   }
   return (
-    <Box
-      sx={{
-        mt: 2,
-        mb: 2,
-        mx: 2,
-        boxShadow: (theme) => `0 2px 8px 0 ${theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.04)'}`,
-        borderRadius: 2,
-        background: (theme) => theme.palette.background.paper,
-        p: 2,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2
-      }}
-    >
+    <Box sx={detailPanelContainerSx}>
       {/* 上方三栏 */}
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 2,
-          overflowX: 'auto',
-          '&::-webkit-scrollbar': {
-            height: '6px'
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: (theme) => theme.palette.divider,
-            borderRadius: '3px'
-          },
-          '&::-webkit-scrollbar-track': {
-            backgroundColor: 'transparent'
-          }
-        }}
-      >
+      <Box sx={detailPanelScrollableRowSx}>
         {/* 原始价格 */}
-        <Box
-          sx={{
-            flex: 1,
-            minWidth: 0,
-            p: 2,
-            borderRadius: 1,
-            background: (theme) => (theme.palette.mode === 'dark' ? theme.palette.background.default : '#fafbfc')
-          }}
-        >
+        <Box sx={detailPanelInfoCardSx}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
             <AttachMoneyIcon sx={{ fontSize: 20, mr: 1, color: (theme) => theme.palette.info.main }} />
             <Typography sx={{ fontWeight: 600, fontSize: 15 }}>{t('logPage.quotaDetail.originalPrice')}</Typography>
@@ -147,15 +153,7 @@ export default function QuotaWithDetailContent({ item, userGroup, totalInputToke
           </Typography>
         </Box>
         {/* Group Ratio */}
-        <Box
-          sx={{
-            flex: 1,
-            minWidth: 0,
-            p: 2,
-            borderRadius: 1,
-            background: (theme) => (theme.palette.mode === 'dark' ? theme.palette.background.default : '#fafbfc')
-          }}
-        >
+        <Box sx={detailPanelInfoCardSx}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
             <PercentIcon sx={{ fontSize: 20, mr: 1, color: (theme) => theme.palette.info.main }} />
             <Typography sx={{ fontWeight: 600, fontSize: 15 }}>{t('logPage.quotaDetail.groupRatio')}</Typography>
@@ -171,15 +169,7 @@ export default function QuotaWithDetailContent({ item, userGroup, totalInputToke
           </Typography>
         </Box>
         {/* Actual Price */}
-        <Box
-          sx={{
-            flex: 1,
-            minWidth: 0,
-            p: 2,
-            borderRadius: 1,
-            background: (theme) => (theme.palette.mode === 'dark' ? theme.palette.background.default : '#fafbfc')
-          }}
-        >
+        <Box sx={detailPanelInfoCardSx}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
             <CreditCardIcon sx={{ fontSize: 20, mr: 1, color: (theme) => theme.palette.primary.main }} />
             <Typography sx={{ fontWeight: 600, fontSize: 15 }}>{t('logPage.quotaDetail.actualPrice')}</Typography>
@@ -193,13 +183,7 @@ export default function QuotaWithDetailContent({ item, userGroup, totalInputToke
         </Box>
       </Box>
       {/* Final Calculation Area */}
-      <Box
-        sx={{
-          p: 2,
-          borderRadius: 1,
-          background: (theme) => (theme.palette.mode === 'dark' ? theme.palette.background.default : '#f7f8fa')
-        }}
-      >
+      <Box sx={detailPanelSectionSx}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
           <CalculateIcon sx={{ fontSize: 20, mr: 1, color: (theme) => theme.palette.success.main }} />
           <Typography sx={{ fontWeight: 600, fontSize: 15 }}>{t('logPage.quotaDetail.finalCalculation')}</Typography>

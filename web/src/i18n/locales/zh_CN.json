@@ -442,6 +442,20 @@
       "actualBilling": "实际计费",
       "calculationNote": "PS：本系统按照积分计算，所有金额均为积分换算而来，1积分=$0.000002，最低消费为1积分，本计算步骤仅供参考，以实际扣费为准",
       "times": "倍"
+    },
+    "retryDetail": {
+      "title": "重试详情",
+      "attemptCount": "尝试次数",
+      "retryCount": "重试次数",
+      "totalDuration": "累计耗时",
+      "success": "成功",
+      "failed": "失败",
+      "channel": "渠道",
+      "duration": "耗时",
+      "statusCode": "状态码",
+      "errorCode": "错误码",
+      "errorType": "错误类型",
+      "message": "结果说明"
     }
   },
   "redemptionPage": {

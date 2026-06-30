@@ -79,6 +79,7 @@ func ChatRealtime(c *gin.Context) {
 
 		logger.LogInfo(relay.c.Request.Context(), fmt.Sprintf("连接由%s关闭", closedBy))
 		wsProxy.Close()
+		relay_util.AttachRetryTraceToRequestContext(relay.c)
 		relay.quota.Consume(relay.c, relay.usage.ToChatUsage(), false)
 
 	}()
@@ -112,9 +113,20 @@ func (r *RelayModeChatRealtime) getProvider() bool {
 			return false
 		}
 		channel := r.provider.GetChannel()
+		attemptStartedAt := time.Now()
 
 		providerConn, messageHandler, apiErr := realtimeProvider.CreateChatRealtime(r.modelName)
 		if apiErr != nil {
+			relay_util.AppendRetryAttempt(r.c, relay_util.RetryAttemptInput{
+				ChannelId:   channel.Id,
+				ChannelName: channel.Name,
+				StartedAt:   attemptStartedAt,
+				StatusCode:  apiErr.StatusCode,
+				ErrorCode:   relay_util.NormalizeRetryErrorCode(apiErr.OpenAIError.Code),
+				ErrorType:   apiErr.OpenAIError.Type,
+				Message:     apiErr.OpenAIError.Message,
+				Success:     false,
+			})
 			r.skipChannelIds(channel.Id)
 			logger.LogError(r.c.Request.Context(), fmt.Sprintf("using channel #%d(%s) Error: %s to retry (remain times %d)", channel.Id, channel.Name, apiErr.Error(), i))
 			metrics.RecordProvider(r.c, apiErr.StatusCode)
@@ -125,11 +137,28 @@ func (r *RelayModeChatRealtime) getProvider() bool {
 		r.messageHandler = messageHandler
 		r.providerConn = providerConn
 
-		if r.getRealtimeFirstMessage() {
+		ok, failMessage := r.getRealtimeFirstMessage()
+		if ok {
+			relay_util.AppendRetryAttempt(r.c, relay_util.RetryAttemptInput{
+				ChannelId:   channel.Id,
+				ChannelName: channel.Name,
+				StartedAt:   attemptStartedAt,
+				StatusCode:  http.StatusOK,
+				Success:     true,
+			})
 			metrics.RecordProvider(r.c, 200)
 			return true
 		}
 
+		relay_util.AppendRetryAttempt(r.c, relay_util.RetryAttemptInput{
+			ChannelId:   channel.Id,
+			ChannelName: channel.Name,
+			StartedAt:   attemptStartedAt,
+			StatusCode:  0,
+			ErrorCode:   "realtime_first_message_failed",
+			Message:     failMessage,
+			Success:     false,
+		})
 		r.skipChannelIds(channel.Id)
 	}
 
@@ -148,29 +177,34 @@ func (r *RelayModeChatRealtime) skipChannelIds(channelId int) {
 	r.c.Set("skip_channel_ids", skipChannelIds)
 }
 
-func (r *RelayModeChatRealtime) getRealtimeFirstMessage() bool {
+func (r *RelayModeChatRealtime) getRealtimeFirstMessage() (bool, string) {
 	messageType, firstMessage, err := r.providerConn.ReadMessage()
 	if err != nil {
-		return false
+		return false, "realtime 首包读取失败: " + err.Error()
 	}
 
 	if messageType != websocket.TextMessage {
-		return false
+		return false, fmt.Sprintf("realtime 首包消息类型异常: %d", messageType)
 	}
 
 	shouldContinue, _, newMessage, err := r.messageHandler(requester.SupplierMessage, messageType, firstMessage)
 
 	if !shouldContinue || err != nil {
-		return false
+		if err != nil {
+			return false, err.Error()
+		}
+		return false, "realtime 首包处理被中止"
 	}
 
 	if newMessage != nil {
-		r.userConn.WriteMessage(websocket.TextMessage, newMessage)
+		// 保持旧行为：用户侧首包回写失败不视为渠道首包失败，也不触发切渠道重试。
+		_ = r.userConn.WriteMessage(websocket.TextMessage, newMessage)
 	} else {
-		r.userConn.WriteMessage(websocket.TextMessage, firstMessage)
+		// 保持旧行为：用户侧首包回写失败不视为渠道首包失败，也不触发切渠道重试。
+		_ = r.userConn.WriteMessage(websocket.TextMessage, firstMessage)
 	}
 
-	return true
+	return true, ""
 }
 
 func (r *RelayModeChatRealtime) usageHandler(usage *types.UsageEvent) error {

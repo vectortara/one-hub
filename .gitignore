@@ -18,3 +18,15 @@ test.yaml
 one-api
 _output
 .claude
+node_modules
+.gocache/
+.gocache*/
+.gotmp/
+.gotmp*/
+.DS_Store
+.openclaw*.bak
+codex-smart.sh
+tasks.md
+skills/
+plan/cursor-codex-fix/
+web/build-channel-monitor-review/

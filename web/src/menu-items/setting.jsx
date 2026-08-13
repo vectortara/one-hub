@@ -14,7 +14,8 @@ const icons = {
   IconCoins: () => <Icon width={20} icon="solar:hand-money-bold-duotone" />,
   IconUsers: () => <Icon width={20} icon="solar:users-group-rounded-bold-duotone" />,
   IconModel: () => <Icon width={20} icon="mingcute:ai-fill" />,
-  IconInfo: () => <Icon width={20} icon="solar:info-circle-bold-duotone" />
+  IconInfo: () => <Icon width={20} icon="solar:info-circle-bold-duotone" />,
+  IconMonitor: () => <Icon width={20} icon="solar:pulse-2-bold-duotone" />
 };
 
 const Setting = {
@@ -37,6 +38,15 @@ const Setting = {
       type: 'item',
       url: '/panel/channel',
       icon: icons.IconSitemap,
+      breadcrumbs: false,
+      isAdmin: true
+    },
+    {
+      id: 'channel_monitor',
+      title: '渠道监控',
+      type: 'item',
+      url: '/panel/channel_monitor',
+      icon: icons.IconMonitor,
       breadcrumbs: false,
       isAdmin: true
     },

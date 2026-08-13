@@ -6,7 +6,7 @@ import { CHANNEL_OPTIONS } from 'constants/ChannelConstants';
 import { useTranslation } from 'react-i18next';
 // ----------------------------------------------------------------------
 
-export default function TableToolBar({ filterName, handleFilterName, groupOptions, tags }) {
+export default function TableToolBar({ filterName, handleFilterName, groupOptions, tags, showFilterTag = true }) {
   const theme = useTheme();
   const grey500 = theme.palette.grey[500];
   const { t } = useTranslation();
@@ -217,44 +217,54 @@ export default function TableToolBar({ filterName, handleFilterName, groupOption
             })}
           </Select>
         </FormControl>
-        <FormControl>
-          <InputLabel htmlFor="channel-filter_tag-label">{t('channel_index.filterTags')}</InputLabel>
-          <Select
-            id="channel-filter_tag-label"
-            label={t('channel_index.filterTags')}
-            value={filterName.filter_tag}
-            name="filter_tag"
-            onChange={handleFilterName}
-            sx={{
-              minWidth: '100%'
-            }}
-            MenuProps={{
-              PaperProps: {
-                style: {
-                  maxHeight: 200
+        {showFilterTag && (
+          <FormControl>
+            <InputLabel htmlFor="channel-filter_tag-label">{t('channel_index.filterTags')}</InputLabel>
+            <Select
+              id="channel-filter_tag-label"
+              label={t('channel_index.filterTags')}
+              value={filterName.filter_tag}
+              name="filter_tag"
+              onChange={handleFilterName}
+              sx={{
+                minWidth: '100%'
+              }}
+              MenuProps={{
+                PaperProps: {
+                  style: {
+                    maxHeight: 200
+                  }
                 }
-              }
-            }}
-          >
-            <MenuItem key={0} value={0}>
-              {t('channel_index.all')}
-            </MenuItem>
-            <MenuItem key={1} value={1}>
-              {t('channel_index.filterTags')}
-            </MenuItem>
-            <MenuItem key={2} value={2}>
-              {t('channel_index.onlyTags')}
-            </MenuItem>
-          </Select>
-        </FormControl>
+              }}
+            >
+              <MenuItem key={0} value={0}>
+                {t('channel_index.all')}
+              </MenuItem>
+              <MenuItem key={1} value={1}>
+                {t('channel_index.filterTags')}
+              </MenuItem>
+              <MenuItem key={2} value={2}>
+                {t('channel_index.onlyTags')}
+              </MenuItem>
+            </Select>
+          </FormControl>
+        )}
         <FormControl>
           <InputLabel htmlFor="channel-tag-label">{t('channel_index.tags')}</InputLabel>
           <Select
+            displayEmpty
             id="channel-tag-label"
             label={t('channel_index.tags')}
             value={filterName.tag}
             name="tag"
             onChange={handleFilterName}
+            renderValue={(selected) => {
+              if (selected === '') {
+                return t('channel_index.all');
+              }
+
+              return selected;
+            }}
             sx={{
               minWidth: '100%'
             }}
@@ -266,7 +276,14 @@ export default function TableToolBar({ filterName, handleFilterName, groupOption
               }
             }}
           >
+            <MenuItem key="all-tag" value="">
+              {t('channel_index.all')}
+            </MenuItem>
             {tags.map((option) => {
+              if (option.tag === '') {
+                return null;
+              }
+
               return (
                 <MenuItem key={option.tag} value={option.tag}>
                   {option.tag}
@@ -284,5 +301,6 @@ TableToolBar.propTypes = {
   filterName: PropTypes.object,
   handleFilterName: PropTypes.func,
   groupOptions: PropTypes.array,
-  tags: PropTypes.array
+  tags: PropTypes.array,
+  showFilterTag: PropTypes.bool
 };

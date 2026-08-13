@@ -155,6 +155,7 @@ func SetApiRouter(router *gin.Engine) {
 		{
 			channelRoute.GET("/", controller.GetChannelsList)
 			channelRoute.GET("/models", relay.ListModelsForAdmin)
+			channelRoute.POST("/monitor/search", controller.GetChannelMonitorSearch)
 			channelRoute.POST("/provider_models_list", controller.GetModelList)
 			channelRoute.GET("/:id", controller.GetChannel)
 			channelRoute.GET("/test", controller.TestAllChannels)
@@ -279,6 +280,7 @@ func SetApiRouter(router *gin.Engine) {
 	sseRouter.Use(middleware.GlobalAPIRateLimit())
 	{
 		sseRouter.POST("/channel/check", middleware.AdminAuth(), controller.CheckChannel)
+		sseRouter.POST("/channel/monitor/run", middleware.AdminAuth(), controller.RunChannelMonitorStream)
 	}
 
 }

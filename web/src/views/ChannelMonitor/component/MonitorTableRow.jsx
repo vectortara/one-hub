@@ -9,6 +9,13 @@ import GroupLabel from 'views/Channel/component/GroupLabel';
 
 import MonitorStatusLabel from './MonitorStatusLabel';
 
+const monitorDetailTextSx = {
+  fontSize: { xs: '0.95rem', md: '1.05rem' },
+  fontWeight: 700,
+  lineHeight: 1.5,
+  letterSpacing: '0.01em'
+};
+
 function formatMonitorResponseTime(responseTime) {
   if (typeof responseTime !== 'number') {
     return '';
@@ -98,34 +105,59 @@ export default function MonitorTableRow({ item, detailColSpan }) {
         <TableCell colSpan={detailColSpan} align="left">
           <Stack spacing={1.25} sx={{ pl: { md: 2 } }}>
             {matchedModels.map((matchedModel) => {
-              const showNoResponseText = matchedModel.probe_status === 'no_response';
               const responseTimeText = formatMonitorResponseTime(matchedModel.response_time);
 
               return (
                 <Box
                   key={`${item.id}-${matchedModel.model}`}
                   sx={{
-                    p: 1.5,
+                    p: { xs: 1.75, md: 2 },
                     borderRadius: 2,
                     border: (theme) => `1px solid ${theme.palette.divider}`,
                     bgcolor: (theme) => (theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'grey.50')
                   }}
                 >
-                  <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', md: 'center' }} useFlexGap>
-                    <Typography variant="subtitle2">{matchedModel.model}</Typography>
-                    {(responseTimeText !== '' || showNoResponseText) && (
-                      <Typography variant="body2" color="text.secondary">
-                        {responseTimeText || t('channel_monitor.notAvailable')}
-                      </Typography>
-                    )}
-                    <MonitorStatusLabel status={matchedModel.probe_status} />
-                  </Stack>
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                      gap: { xs: 1, md: 1.5 },
+                      alignItems: 'center',
+                      justifyItems: 'center',
+                      textAlign: 'center'
+                    }}
+                  >
+                    <Typography sx={{ ...monitorDetailTextSx, wordBreak: 'break-word' }}>{matchedModel.model}</Typography>
+                    <Typography sx={{ ...monitorDetailTextSx, color: responseTimeText !== '' ? 'text.primary' : 'text.secondary' }}>
+                      {responseTimeText || t('channel_monitor_page.notAvailable')}
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                      <MonitorStatusLabel
+                        status={matchedModel.probe_status}
+                        sx={{
+                          minWidth: { xs: 88, md: 100 },
+                          height: { xs: 30, md: 34 },
+                          px: 1.5,
+                          borderRadius: 1.5,
+                          fontSize: { xs: '0.95rem', md: '1.05rem' },
+                          fontWeight: 700,
+                          lineHeight: 1.5,
+                          letterSpacing: '0.01em'
+                        }}
+                      />
+                    </Box>
+                  </Box>
 
                   {matchedModel.error_message && (
                     <Typography
-                      variant="caption"
                       color="error.main"
-                      sx={{ display: 'block', mt: 1, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                      sx={{
+                        ...monitorDetailTextSx,
+                        display: 'block',
+                        mt: 1.25,
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word'
+                      }}
                     >
                       {matchedModel.error_message}
                     </Typography>

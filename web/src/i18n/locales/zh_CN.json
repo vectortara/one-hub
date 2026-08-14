@@ -185,7 +185,8 @@
     "AzureApiVersion": "Azure 版本号",
     "batchDelete": "批量删除模型"
   },
-  "channel_monitor": {
+  "channel_monitor": "渠道监控",
+  "channel_monitor_page": {
     "title": "渠道监控",
     "subtitle": "Channel Monitor",
     "bootstrapInfo": "进入页面时只会初始化分组、标签和默认监控模型，不会自动搜索，也不会自动发起测速。",

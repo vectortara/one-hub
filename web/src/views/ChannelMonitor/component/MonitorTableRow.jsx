@@ -9,12 +9,27 @@ import GroupLabel from 'views/Channel/component/GroupLabel';
 
 import MonitorStatusLabel from './MonitorStatusLabel';
 
-const monitorDetailTextSx = {
-  fontSize: { xs: '0.95rem', md: '1.05rem' },
-  fontWeight: 700,
-  lineHeight: 1.5,
-  letterSpacing: '0.01em'
-};
+const getMonitorDetailTextSx = (theme) => ({
+  fontFamily: theme.typography.fontSecondaryFamily,
+  fontSize: { xs: '1rem', md: '1.125rem' },
+  fontWeight: theme.typography.fontWeightSemiBold,
+  lineHeight: 1.25,
+  letterSpacing: '0.015em',
+  color: theme.palette.text.primary
+});
+
+const getMonitorSpeedTextSx = (theme, hasValue) => ({
+  ...getMonitorDetailTextSx(theme),
+  fontVariantNumeric: 'tabular-nums',
+  fontFeatureSettings: '"tnum" 1',
+  color: hasValue ? theme.palette.text.secondary : theme.palette.text.disabled
+});
+
+const getMonitorErrorTextSx = (theme) => ({
+  ...getMonitorDetailTextSx(theme),
+  color: theme.palette.error.main,
+  lineHeight: 1.35
+});
 
 function formatMonitorResponseTime(responseTime) {
   if (typeof responseTime !== 'number') {
@@ -127,8 +142,10 @@ export default function MonitorTableRow({ item, detailColSpan }) {
                       textAlign: 'center'
                     }}
                   >
-                    <Typography sx={{ ...monitorDetailTextSx, wordBreak: 'break-word' }}>{matchedModel.model}</Typography>
-                    <Typography sx={{ ...monitorDetailTextSx, color: responseTimeText !== '' ? 'text.primary' : 'text.secondary' }}>
+                    <Typography sx={(theme) => ({ ...getMonitorDetailTextSx(theme), wordBreak: 'break-word' })}>
+                      {matchedModel.model}
+                    </Typography>
+                    <Typography sx={(theme) => getMonitorSpeedTextSx(theme, responseTimeText !== '')}>
                       {responseTimeText || t('channel_monitor_page.notAvailable')}
                     </Typography>
                     <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
@@ -138,11 +155,7 @@ export default function MonitorTableRow({ item, detailColSpan }) {
                           minWidth: { xs: 88, md: 100 },
                           height: { xs: 30, md: 34 },
                           px: 1.5,
-                          borderRadius: 1.5,
-                          fontSize: { xs: '0.95rem', md: '1.05rem' },
-                          fontWeight: 700,
-                          lineHeight: 1.5,
-                          letterSpacing: '0.01em'
+                          borderRadius: 999
                         }}
                       />
                     </Box>
@@ -150,14 +163,13 @@ export default function MonitorTableRow({ item, detailColSpan }) {
 
                   {matchedModel.error_message && (
                     <Typography
-                      color="error.main"
-                      sx={{
-                        ...monitorDetailTextSx,
+                      sx={(theme) => ({
+                        ...getMonitorErrorTextSx(theme),
                         display: 'block',
                         mt: 1.25,
                         whiteSpace: 'pre-wrap',
                         wordBreak: 'break-word'
-                      }}
+                      })}
                     >
                       {matchedModel.error_message}
                     </Typography>

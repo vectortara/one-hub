@@ -221,7 +221,6 @@
     "title": "Channel Monitor",
     "subtitle": "Two-stage search and SSE probe backfill",
     "bootstrapInfo": "This page only initializes groups, tags, and default monitor models on entry. It does not auto-search or auto-start probes.",
-    "temporaryModelInfo": "On this page, the models input only adds a temporary probe model. It is not submitted as a channel models LIKE filter.",
     "searchReadyTip": "The first run must be started manually. After one submission, pagination and sorting replay the latest submitted filters automatically.",
     "submittedDraftTip": "Pagination and sorting only use the latest submitted filters. Current draft edits will not overwrite the monitor results being displayed.",
     "recentSubmittedFilters": "Latest Submitted Filters",

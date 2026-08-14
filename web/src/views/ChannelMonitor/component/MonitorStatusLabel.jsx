@@ -23,6 +23,14 @@ const statusConfig = {
   }
 };
 
+const monitorStatusLabelSx = (theme) => ({
+  fontFamily: theme.typography.fontSecondaryFamily,
+  fontSize: { xs: '0.94rem', md: '1rem' },
+  fontWeight: theme.typography.fontWeightSemiBold,
+  lineHeight: 1.2,
+  letterSpacing: '0.015em'
+});
+
 export default function MonitorStatusLabel({ status, sx }) {
   const { t } = useTranslation();
   const resolvedStatus = statusConfig[status] || {
@@ -31,7 +39,7 @@ export default function MonitorStatusLabel({ status, sx }) {
   };
 
   return (
-    <Label color={resolvedStatus.color} variant="soft" sx={sx}>
+    <Label color={resolvedStatus.color} variant="soft" sx={[monitorStatusLabelSx, sx]}>
       {t(resolvedStatus.labelKey)}
     </Label>
   );
@@ -39,5 +47,5 @@ export default function MonitorStatusLabel({ status, sx }) {
 
 MonitorStatusLabel.propTypes = {
   status: PropTypes.string,
-  sx: PropTypes.object
+  sx: PropTypes.oneOfType([PropTypes.object, PropTypes.array, PropTypes.func])
 };

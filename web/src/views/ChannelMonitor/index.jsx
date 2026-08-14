@@ -845,7 +845,6 @@ export default function ChannelMonitor() {
 
       <Stack mb={5} spacing={2}>
         <Alert severity="info">{t('channel_monitor_page.bootstrapInfo')}</Alert>
-        <Alert severity="warning">{t('channel_monitor_page.temporaryModelInfo')}</Alert>
       </Stack>
 
       <Card>

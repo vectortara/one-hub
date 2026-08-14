@@ -205,7 +205,6 @@
     "title": "渠道監控",
     "subtitle": "Channel Monitor",
     "bootstrapInfo": "進入頁面時只會初始化分組、標籤和預設監控模型，不會自動搜尋，也不會自動發起測速。",
-    "temporaryModelInfo": "監控頁的 models 輸入框只會作為臨時測速模型來源，不會作為渠道 models LIKE 條件直接提交。",
     "searchReadyTip": "首次查詢需要手動點擊搜尋；完成一次提交後，分頁和排序會基於最近一次已提交條件自動重跑。",
     "submittedDraftTip": "分頁和排序只會使用最近一次已提交條件，當前表單草稿不會自動覆蓋正在展示的監控結果。",
     "recentSubmittedFilters": "最近一次提交條件",

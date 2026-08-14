@@ -190,7 +190,6 @@
     "title": "渠道监控",
     "subtitle": "Channel Monitor",
     "bootstrapInfo": "进入页面时只会初始化分组、标签和默认监控模型，不会自动搜索，也不会自动发起测速。",
-    "temporaryModelInfo": "监控页的 models 输入框只会作为临时测速模型来源，不会作为渠道 models LIKE 条件直接提交。",
     "searchReadyTip": "首次查询需要手动点击搜索；完成一次提交后，分页和排序会基于最近一次已提交条件自动重跑。",
     "submittedDraftTip": "分页和排序只会使用最近一次已提交条件，当前表单草稿不会自动覆盖正在展示的监控结果。",
     "recentSubmittedFilters": "最近一次提交条件",
@@ -222,7 +221,7 @@
     "statusNoResponse": "无响应",
     "notAvailable": "N/A",
     "selectedCount": "已选 {{count}} 项",
-    "temporaryModelTip": "models 输入框中的值不会立即变成渠道筛选条件，只有点击“搜索”后才会作为临时测速模型追加到这里。",
+    "temporaryModelTip": "模型输入框中的值不会立即变成渠道筛选条件，只有点击“搜索”后才会作为临时测速模型追加到这里。",
     "pendingTemporaryModel": "当前待加入模型：{{model}}"
   },
   "channel_edit": {

@@ -10,9 +10,9 @@ export default function MonitorModelSelector({ models, selectedModels, pendingTe
   return (
     <Stack spacing={2} padding={3} paddingTop={0}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }}>
-        <Typography variant="h4">{t('channel_monitor.monitorModels')}</Typography>
+        <Typography variant="h4">{t('channel_monitor_page.monitorModels')}</Typography>
         <Typography variant="body2" color="text.secondary">
-          {t('channel_monitor.selectedCount', { count: selectedModels.length })}
+          {t('channel_monitor_page.selectedCount', { count: selectedModels.length })}
         </Typography>
       </Stack>
 
@@ -32,8 +32,8 @@ export default function MonitorModelSelector({ models, selectedModels, pendingTe
       </Box>
 
       <Alert severity="info" variant="outlined">
-        {t('channel_monitor.temporaryModelTip')}
-        {hasPendingTemporaryModel ? ` ${t('channel_monitor.pendingTemporaryModel', { model: pendingTemporaryModel })}` : ''}
+        {t('channel_monitor_page.temporaryModelTip')}
+        {hasPendingTemporaryModel ? ` ${t('channel_monitor_page.pendingTemporaryModel', { model: pendingTemporaryModel })}` : ''}
       </Alert>
     </Stack>
   );

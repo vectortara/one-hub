@@ -200,7 +200,8 @@
     "weight": "權重",
     "onlyTags": "僅顯示標籤"
   },
-  "channel_monitor": {
+  "channel_monitor": "渠道監控",
+  "channel_monitor_page": {
     "title": "渠道監控",
     "subtitle": "Channel Monitor",
     "bootstrapInfo": "進入頁面時只會初始化分組、標籤和預設監控模型，不會自動搜尋，也不會自動發起測速。",

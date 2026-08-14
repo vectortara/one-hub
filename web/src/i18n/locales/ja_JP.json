@@ -196,7 +196,8 @@
     "weight": "ウェイト",
     "onlyTags": "タグのみ表示"
   },
-  "channel_monitor": {
+  "channel_monitor": "チャネル監視",
+  "channel_monitor_page": {
     "title": "チャネル監視",
     "subtitle": "二段階検索とSSE結果反映",
     "bootstrapInfo": "このページを開いた時点では、グループ・タグ・既定の監視モデルだけを初期化します。自動検索や自動プローブは開始しません。",

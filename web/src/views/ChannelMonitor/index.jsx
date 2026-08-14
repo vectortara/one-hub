@@ -394,21 +394,21 @@ function getChannelMonitorProbeStats(items) {
 function getChannelMonitorEmptyState(t, submittedSearch, runPhase) {
   if (!submittedSearch) {
     return {
-      title: t('channel_monitor.initialEmptyTitle'),
-      description: t('channel_monitor.initialEmptyDescription')
+      title: t('channel_monitor_page.initialEmptyTitle'),
+      description: t('channel_monitor_page.initialEmptyDescription')
     };
   }
 
   if (runPhase === CHANNEL_MONITOR_PHASE_SEARCHING) {
     return {
-      title: t('channel_monitor.searchingEmptyTitle'),
-      description: t('channel_monitor.searchingEmptyDescription')
+      title: t('channel_monitor_page.searchingEmptyTitle'),
+      description: t('channel_monitor_page.searchingEmptyDescription')
     };
   }
 
   return {
-    title: t('channel_monitor.noResultTitle'),
-    description: t('channel_monitor.noResultDescription')
+    title: t('channel_monitor_page.noResultTitle'),
+    description: t('channel_monitor_page.noResultDescription')
   };
 }
 
@@ -554,7 +554,7 @@ export default function ChannelMonitor() {
 
         if (!isChannelMonitorSuccessfulHttpResponse(groupRes) || groupRes.data?.success === false) {
           handleChannelMonitorUnauthorizedResponse(groupRes);
-          showError(getChannelMonitorResponseMessage(groupRes, translateRef.current('channel_monitor.requestFailed')));
+          showError(getChannelMonitorResponseMessage(groupRes, translateRef.current('channel_monitor_page.requestFailed')));
           return;
         }
 
@@ -573,7 +573,7 @@ export default function ChannelMonitor() {
 
         if (!isChannelMonitorSuccessfulHttpResponse(tagRes) || tagRes.data?.success === false) {
           handleChannelMonitorUnauthorizedResponse(tagRes);
-          showError(getChannelMonitorResponseMessage(tagRes, translateRef.current('channel_monitor.requestFailed')));
+          showError(getChannelMonitorResponseMessage(tagRes, translateRef.current('channel_monitor_page.requestFailed')));
           return;
         }
 
@@ -647,19 +647,22 @@ export default function ChannelMonitor() {
         }
 
         if (!searchResponse) {
-          updateRunError(translateRef.current('channel_monitor.requestFailed'), false);
+          updateRunError(translateRef.current('channel_monitor_page.requestFailed'), false);
           return;
         }
 
         if (!isChannelMonitorSuccessfulHttpResponse(searchResponse)) {
           handleChannelMonitorUnauthorizedResponse(searchResponse);
-          updateRunError(getChannelMonitorResponseMessage(searchResponse, translateRef.current('channel_monitor.searchFailed')), false);
+          updateRunError(
+            getChannelMonitorResponseMessage(searchResponse, translateRef.current('channel_monitor_page.searchFailed')),
+            false
+          );
           return;
         }
 
         const { success, message, data } = searchResponse.data || {};
         if (!success) {
-          updateRunError(message || translateRef.current('channel_monitor.searchFailed'), false);
+          updateRunError(message || translateRef.current('channel_monitor_page.searchFailed'), false);
           return;
         }
 
@@ -694,7 +697,7 @@ export default function ChannelMonitor() {
                 setMonitorItems((currentItems) => applyChannelMonitorProbeResult(currentItems, eventPayload.data || {}));
                 break;
               case 'error':
-                updateRunError(eventPayload?.data?.message || translateRef.current('channel_monitor.streamFailed'), false);
+                updateRunError(eventPayload?.data?.message || translateRef.current('channel_monitor_page.streamFailed'), false);
                 if (streamController) {
                   streamController.abort();
                 }
@@ -732,13 +735,16 @@ export default function ChannelMonitor() {
         }
 
         if (!streamResponse) {
-          updateRunError(translateRef.current('channel_monitor.requestFailed'), false);
+          updateRunError(translateRef.current('channel_monitor_page.requestFailed'), false);
           return;
         }
 
         if (!isChannelMonitorSuccessfulHttpResponse(streamResponse)) {
           handleChannelMonitorUnauthorizedResponse(streamResponse);
-          updateRunError(getChannelMonitorResponseMessage(streamResponse, translateRef.current('channel_monitor.streamFailed')), false);
+          updateRunError(
+            getChannelMonitorResponseMessage(streamResponse, translateRef.current('channel_monitor_page.streamFailed')),
+            false
+          );
           return;
         }
 
@@ -758,7 +764,7 @@ export default function ChannelMonitor() {
 
         const parsedStreamResponse = parseChannelMonitorJsonResponse(streamResponse?.data);
         if (parsedStreamResponse?.success === false) {
-          updateRunError(parsedStreamResponse.message || translateRef.current('channel_monitor.streamFailed'), false);
+          updateRunError(parsedStreamResponse.message || translateRef.current('channel_monitor_page.streamFailed'), false);
           return;
         }
 
@@ -769,7 +775,7 @@ export default function ChannelMonitor() {
         }
 
         handleChannelMonitorUnauthorizedResponse(error?.response);
-        updateRunError(error.message || translateRef.current('channel_monitor.requestFailed'), false);
+        updateRunError(error.message || translateRef.current('channel_monitor_page.requestFailed'), false);
       } finally {
         if (queryAbortControllerRef.current === queryController) {
           queryAbortControllerRef.current = null;
@@ -800,14 +806,14 @@ export default function ChannelMonitor() {
   }, [submittedSearch, page, rowsPerPage, order, orderBy]);
 
   const emptyState = getChannelMonitorEmptyState(t, submittedSearch, runPhase);
-  const toolbarTip = submittedSearch ? t('channel_monitor.submittedDraftTip') : t('channel_monitor.searchReadyTip');
+  const toolbarTip = submittedSearch ? t('channel_monitor_page.submittedDraftTip') : t('channel_monitor_page.searchReadyTip');
   const statusSummary =
     runPhase === CHANNEL_MONITOR_PHASE_SEARCHING
-      ? { severity: 'info', text: t('channel_monitor.searchingMessage') }
+      ? { severity: 'info', text: t('channel_monitor_page.searchingMessage') }
       : runPhase === CHANNEL_MONITOR_PHASE_STREAMING
         ? {
             severity: 'info',
-            text: t('channel_monitor.streamingMessage', {
+            text: t('channel_monitor_page.streamingMessage', {
               channels: runChannelCount,
               completed: probeStats.completed,
               total: probeStats.total
@@ -815,10 +821,10 @@ export default function ChannelMonitor() {
           }
         : runPhase === CHANNEL_MONITOR_PHASE_DONE && submittedSearch
           ? monitorItems.length === 0
-            ? { severity: 'info', text: t('channel_monitor.noMatchedChannels') }
+            ? { severity: 'info', text: t('channel_monitor_page.noMatchedChannels') }
             : {
                 severity: 'success',
-                text: t('channel_monitor.doneMessage', {
+                text: t('channel_monitor_page.doneMessage', {
                   channels: runChannelCount,
                   completed: probeStats.completed,
                   total: probeStats.total
@@ -830,16 +836,16 @@ export default function ChannelMonitor() {
     <AdminContainer>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
         <Stack direction="column" spacing={1}>
-          <Typography variant="h2">{t('channel_monitor.title')}</Typography>
+          <Typography variant="h2">{t('channel_monitor_page.title')}</Typography>
           <Typography variant="subtitle1" color="text.secondary">
-            {t('channel_monitor.subtitle')}
+            {t('channel_monitor_page.subtitle')}
           </Typography>
         </Stack>
       </Stack>
 
       <Stack mb={5} spacing={2}>
-        <Alert severity="info">{t('channel_monitor.bootstrapInfo')}</Alert>
-        <Alert severity="warning">{t('channel_monitor.temporaryModelInfo')}</Alert>
+        <Alert severity="info">{t('channel_monitor_page.bootstrapInfo')}</Alert>
+        <Alert severity="warning">{t('channel_monitor_page.temporaryModelInfo')}</Alert>
       </Stack>
 
       <Card>
@@ -893,9 +899,9 @@ export default function ChannelMonitor() {
               justifyContent="space-between"
               alignItems={{ xs: 'flex-start', sm: 'center' }}
             >
-              <Typography variant="h4">{t('channel_monitor.recentSubmittedFilters')}</Typography>
+              <Typography variant="h4">{t('channel_monitor_page.recentSubmittedFilters')}</Typography>
               <Typography variant="body2" color="text.secondary">
-                {t('channel_monitor.submittedAt', { time: new Date(submittedSearch.submittedAt).toLocaleString() })}
+                {t('channel_monitor_page.submittedAt', { time: new Date(submittedSearch.submittedAt).toLocaleString() })}
               </Typography>
             </Stack>
 
@@ -917,7 +923,7 @@ export default function ChannelMonitor() {
               )}
               {submittedSearch.filters.models && (
                 <Chip
-                  label={`${t('channel_monitor.temporaryModelSource')}: ${submittedSearch.filters.models}`}
+                  label={`${t('channel_monitor_page.temporaryModelSource')}: ${submittedSearch.filters.models}`}
                   size="small"
                   color="primary"
                   variant="outlined"
@@ -928,7 +934,7 @@ export default function ChannelMonitor() {
                 !submittedSearch.filters.key &&
                 !submittedSearch.filters.other &&
                 !submittedSearch.filters.tag &&
-                !submittedSearch.filters.models && <Chip label={t('channel_monitor.noBaseFilters')} size="small" variant="outlined" />}
+                !submittedSearch.filters.models && <Chip label={t('channel_monitor_page.noBaseFilters')} size="small" variant="outlined" />}
             </Stack>
 
             <Divider />
@@ -941,7 +947,7 @@ export default function ChannelMonitor() {
                 {submittedSearch.filters.group ? (
                   <GroupLabel group={submittedSearch.filters.group} />
                 ) : (
-                  <Typography variant="body2">{t('channel_monitor.allGroups')}</Typography>
+                  <Typography variant="body2">{t('channel_monitor_page.allGroups')}</Typography>
                 )}
               </Stack>
 
@@ -954,7 +960,7 @@ export default function ChannelMonitor() {
                     {submittedTypeOption.text}
                   </Label>
                 ) : (
-                  <Typography variant="body2">{t('channel_monitor.allTypes')}</Typography>
+                  <Typography variant="body2">{t('channel_monitor_page.allTypes')}</Typography>
                 )}
               </Stack>
 
@@ -968,11 +974,11 @@ export default function ChannelMonitor() {
 
             <Stack spacing={1}>
               <Typography variant="subtitle2" color="text.secondary">
-                {t('channel_monitor.selectedMonitorModels')}
+                {t('channel_monitor_page.selectedMonitorModels')}
               </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 {submittedSearch.selectedMonitorModels.length === 0 ? (
-                  <Chip label={t('channel_monitor.noMonitorModelsSelected')} size="small" variant="outlined" />
+                  <Chip label={t('channel_monitor_page.noMonitorModelsSelected')} size="small" variant="outlined" />
                 ) : (
                   submittedSearch.selectedMonitorModels.map((model) => <Chip key={model} label={model} size="small" color="primary" />)
                 )}
@@ -989,7 +995,7 @@ export default function ChannelMonitor() {
             {!runErrorMessage && statusSummary && <Alert severity={statusSummary.severity}>{statusSummary.text}</Alert>}
             {activeRequestId && (
               <Typography variant="caption" color="text.secondary">
-                {t('channel_monitor.requestId')}: {activeRequestId}
+                {t('channel_monitor_page.requestId')}: {activeRequestId}
               </Typography>
             )}
             {(runPhase === CHANNEL_MONITOR_PHASE_SEARCHING || runPhase === CHANNEL_MONITOR_PHASE_STREAMING) && (

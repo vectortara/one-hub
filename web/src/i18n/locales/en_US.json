@@ -216,7 +216,8 @@
     "weight": "Weight",
     "onlyTags": "Display tags only"
   },
-  "channel_monitor": {
+  "channel_monitor": "Channel Monitor",
+  "channel_monitor_page": {
     "title": "Channel Monitor",
     "subtitle": "Two-stage search and SSE probe backfill",
     "bootstrapInfo": "This page only initializes groups, tags, and default monitor models on entry. It does not auto-search or auto-start probes.",

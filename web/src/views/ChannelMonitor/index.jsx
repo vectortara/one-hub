@@ -2,24 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { Icon } from '@iconify/react';
 import axios from 'axios';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  Chip,
-  Divider,
-  LinearProgress,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TablePagination,
-  TableRow,
-  Toolbar,
-  Typography
-} from '@mui/material';
+import { Alert, Box, Button, Card, Chip, Divider, Grid, LinearProgress, Stack, TablePagination, Toolbar, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
 import { getPageSize, savePageSize } from 'constants';
@@ -31,11 +14,11 @@ import { showError, trims } from 'utils/common';
 import { API } from 'utils/api';
 import AdminContainer from 'ui-component/AdminContainer';
 import Label from 'ui-component/Label';
-import KeywordTableHead from 'ui-component/TableHead';
 import GroupLabel from 'views/Channel/component/GroupLabel';
 import TableToolBar from 'views/Channel/component/TableToolBar';
 
 import MonitorModelSelector from './component/MonitorModelSelector';
+import MonitorStatusLabel from './component/MonitorStatusLabel';
 import MonitorTableRow from './component/MonitorTableRow';
 
 const originalKeyword = {
@@ -442,12 +425,10 @@ export default function ChannelMonitor() {
   const submittedTypeOption = submittedSearch && submittedSearch.filters.type !== 0 ? CHANNEL_OPTIONS[submittedSearch.filters.type] : null;
   const probeStats = getChannelMonitorProbeStats(monitorItems);
   const progressValue = probeStats.total === 0 ? 0 : Math.round((probeStats.completed / probeStats.total) * 100);
-  const channelMonitorHeadLabel = [
-    { id: 'id', label: 'ID', disableSort: false, width: '80px', align: 'left' },
-    { id: 'name', label: t('channel_index.channel'), disableSort: false, align: 'left' },
-    { id: 'group', label: t('channel_index.group'), disableSort: true, align: 'left' },
-    { id: 'type', label: t('channel_index.type'), disableSort: false, align: 'left' },
-    { id: 'status', label: t('channel_index.status'), disableSort: false, align: 'left' }
+  const channelMonitorSortOptions = [
+    { id: 'id', label: 'ID' },
+    { id: 'name', label: t('channel_index.channel') },
+    { id: 'status', label: t('channel_index.status') }
   ];
 
   const cancelActiveMonitorRun = () => {
@@ -845,6 +826,25 @@ export default function ChannelMonitor() {
 
       <Stack mb={5} spacing={2}>
         <Alert severity="info">{t('channel_monitor_page.bootstrapInfo')}</Alert>
+        <Alert severity="info" variant="outlined">
+          <Stack spacing={1.5}>
+            <Typography variant="subtitle2">{t('channel_monitor_page.healthCriteriaTitle')}</Typography>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap" useFlexGap>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <MonitorStatusLabel status="healthy" />
+                <Typography variant="body2">{t('channel_monitor_page.healthCriteriaHealthy')}</Typography>
+              </Stack>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <MonitorStatusLabel status="unhealthy" />
+                <Typography variant="body2">{t('channel_monitor_page.healthCriteriaUnhealthy')}</Typography>
+              </Stack>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <MonitorStatusLabel status="no_response" />
+                <Typography variant="body2">{t('channel_monitor_page.healthCriteriaNoResponse')}</Typography>
+              </Stack>
+            </Stack>
+          </Stack>
+        </Alert>
       </Stack>
 
       <Card>
@@ -1006,28 +1006,62 @@ export default function ChannelMonitor() {
           </Stack>
         )}
 
-        <TableContainer>
-          <Table sx={{ minWidth: 800 }}>
-            <KeywordTableHead order={order} orderBy={orderBy} onRequestSort={handleSort} headLabel={channelMonitorHeadLabel} />
-            <TableBody>
-              {monitorItems.length > 0 ? (
-                monitorItems.map((item) => <MonitorTableRow key={item.id} item={item} detailColSpan={channelMonitorHeadLabel.length} />)
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={channelMonitorHeadLabel.length} align="center" sx={{ py: 8 }}>
-                    <Stack spacing={1.5} alignItems="center">
-                      <Icon icon="solar:monitor-smartphone-bold-duotone" width={40} />
-                      <Typography variant="h4">{emptyState.title}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {emptyState.description}
-                      </Typography>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        {monitorItems.length > 0 && (
+          <Toolbar
+            sx={{
+              minHeight: 56,
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 2,
+              px: 3,
+              py: 1.5,
+              flexWrap: 'wrap'
+            }}
+          >
+            <Typography variant="body2" color="text.secondary">
+              {t('channel_monitor_page.sortBy')}
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {channelMonitorSortOptions.map((option) => {
+                const isActive = orderBy === option.id;
+
+                return (
+                  <Button
+                    key={option.id}
+                    size="small"
+                    variant={isActive ? 'contained' : 'outlined'}
+                    onClick={(event) => handleSort(event, option.id)}
+                    endIcon={
+                      isActive ? <Icon icon={order === 'asc' ? 'eva:arrow-up-fill' : 'eva:arrow-down-fill'} width={14} /> : undefined
+                    }
+                  >
+                    {option.label}
+                  </Button>
+                );
+              })}
+            </Stack>
+          </Toolbar>
+        )}
+
+        <Box sx={{ px: 3, pb: 3, pt: submittedSearch ? 0 : 3 }}>
+          {monitorItems.length > 0 ? (
+            <Grid container spacing={2.5} data-testid="channel-monitor-result-grid">
+              {monitorItems.map((item) => (
+                <Grid item xs={12} md={6} key={item.id}>
+                  <MonitorTableRow item={item} />
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Stack spacing={1.5} alignItems="center" justifyContent="center" sx={{ py: 8 }} data-testid="channel-monitor-empty-state">
+              <Icon icon="solar:monitor-smartphone-bold-duotone" width={40} />
+              <Typography variant="h4">{emptyState.title}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                {emptyState.description}
+              </Typography>
+            </Stack>
+          )}
+        </Box>
 
         <TablePagination
           page={page}

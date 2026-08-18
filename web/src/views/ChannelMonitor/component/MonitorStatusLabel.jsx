@@ -25,10 +25,10 @@ const statusConfig = {
 
 const monitorStatusLabelSx = (theme) => ({
   fontFamily: theme.typography.fontSecondaryFamily,
-  fontSize: { xs: '0.94rem', md: '1rem' },
+  fontSize: { xs: '0.75rem', md: '0.8125rem' },
   fontWeight: theme.typography.fontWeightSemiBold,
   lineHeight: 1.2,
-  letterSpacing: '0.015em'
+  letterSpacing: '0.01em'
 });
 
 export default function MonitorStatusLabel({ status, sx }) {

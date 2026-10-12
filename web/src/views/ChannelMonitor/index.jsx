@@ -1,13 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Icon } from '@iconify/react';
 import axios from 'axios';
 import { Alert, Box, Button, Card, Chip, Divider, Grid, LinearProgress, Stack, TablePagination, Toolbar, Typography } from '@mui/material';
+import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 
 import { getPageSize, savePageSize } from 'constants';
 import { CHANNEL_OPTIONS } from 'constants/ChannelConstants';
-import { DEFAULT_CHANNEL_MONITOR_MODELS } from 'constants/channelMonitorModels';
+import { getChannelMonitorModelsFromSiteInfo, normalizeChannelMonitorModels } from 'constants/channelMonitorModels';
 import { store } from 'store';
 import { LOGIN } from 'store/actions';
 import { showError, trims } from 'utils/common';
@@ -42,26 +43,17 @@ const CHANNEL_MONITOR_PHASE_ERROR = 'error';
 const CHANNEL_MONITOR_VALIDATE_STATUS = () => true;
 const CHANNEL_MONITOR_BASE_URL = import.meta.env.VITE_APP_SERVER || '/';
 
-function buildUniqueMonitorModels(models) {
-  const nextModels = [];
-  const seenModels = new Set();
-
-  models.forEach((model) => {
-    const normalizedModel = typeof model === 'string' ? model.trim() : '';
-    if (normalizedModel === '' || seenModels.has(normalizedModel)) {
-      return;
-    }
-
-    seenModels.add(normalizedModel);
-    nextModels.push(normalizedModel);
-  });
-
-  return nextModels;
-}
-
 function sortSelectedMonitorModels(models, selectedModels) {
   const selectedSet = new Set(selectedModels);
   return models.filter((model) => selectedSet.has(model));
+}
+
+function areMonitorModelListsEqual(leftModels, rightModels) {
+  if (leftModels.length !== rightModels.length) {
+    return false;
+  }
+
+  return leftModels.every((model, index) => model === rightModels[index]);
 }
 
 function buildChannelMonitorOrder(order, orderBy) {
@@ -397,6 +389,7 @@ function getChannelMonitorEmptyState(t, submittedSearch, runPhase) {
 
 export default function ChannelMonitor() {
   const { t } = useTranslation();
+  const siteInfo = useSelector((state) => state.siteInfo);
   const [page, setPage] = useState(0);
   const [order, setOrder] = useState('desc');
   const [orderBy, setOrderBy] = useState('id');
@@ -410,14 +403,23 @@ export default function ChannelMonitor() {
   const [groupOptions, setGroupOptions] = useState([]);
   const [tags, setTags] = useState([]);
   const [draftKeyword, setDraftKeyword] = useState(originalKeyword);
-  const [draftMonitorModels, setDraftMonitorModels] = useState(DEFAULT_CHANNEL_MONITOR_MODELS);
-  const [draftSelectedMonitorModels, setDraftSelectedMonitorModels] = useState(DEFAULT_CHANNEL_MONITOR_MODELS);
+  const configuredDefaultMonitorModelsConfig = siteInfo?.default_channel_monitor_models;
+  const configuredDefaultMonitorModels = useMemo(
+    () =>
+      getChannelMonitorModelsFromSiteInfo({
+        default_channel_monitor_models: configuredDefaultMonitorModelsConfig
+      }),
+    [configuredDefaultMonitorModelsConfig]
+  );
+  const [draftMonitorModels, setDraftMonitorModels] = useState(() => configuredDefaultMonitorModels);
+  const [draftSelectedMonitorModels, setDraftSelectedMonitorModels] = useState(() => configuredDefaultMonitorModels);
   const [submittedSearch, setSubmittedSearch] = useState(null);
 
   const activeRunTokenRef = useRef(0);
   const activeRequestIdRef = useRef('');
   const queryAbortControllerRef = useRef(null);
   const streamAbortControllerRef = useRef(null);
+  const defaultMonitorModelsRef = useRef(configuredDefaultMonitorModels);
   const translateRef = useRef(t);
   translateRef.current = t;
 
@@ -430,6 +432,21 @@ export default function ChannelMonitor() {
     { id: 'name', label: t('channel_index.channel') },
     { id: 'status', label: t('channel_index.status') }
   ];
+
+  useEffect(() => {
+    const previousDefaultMonitorModels = defaultMonitorModelsRef.current;
+    if (areMonitorModelListsEqual(previousDefaultMonitorModels, configuredDefaultMonitorModels)) {
+      return;
+    }
+
+    setDraftMonitorModels((currentModels) =>
+      areMonitorModelListsEqual(currentModels, previousDefaultMonitorModels) ? configuredDefaultMonitorModels : currentModels
+    );
+    setDraftSelectedMonitorModels((currentModels) =>
+      areMonitorModelListsEqual(currentModels, previousDefaultMonitorModels) ? configuredDefaultMonitorModels : currentModels
+    );
+    defaultMonitorModelsRef.current = configuredDefaultMonitorModels;
+  }, [configuredDefaultMonitorModels]);
 
   const cancelActiveMonitorRun = () => {
     if (queryAbortControllerRef.current) {
@@ -493,8 +510,8 @@ export default function ChannelMonitor() {
     setRunErrorMessage('');
     setActiveRequestId('');
     setDraftKeyword(originalKeyword);
-    setDraftMonitorModels(DEFAULT_CHANNEL_MONITOR_MODELS);
-    setDraftSelectedMonitorModels(DEFAULT_CHANNEL_MONITOR_MODELS);
+    setDraftMonitorModels(configuredDefaultMonitorModels);
+    setDraftSelectedMonitorModels(configuredDefaultMonitorModels);
     setSubmittedSearch(null);
   };
 
@@ -502,7 +519,7 @@ export default function ChannelMonitor() {
     cancelActiveMonitorRun();
 
     const trimmedDraftKeyword = trims(draftKeyword);
-    const nextMonitorModels = buildUniqueMonitorModels([...draftMonitorModels, trimmedDraftKeyword.models]);
+    const nextMonitorModels = normalizeChannelMonitorModels([...draftMonitorModels, trimmedDraftKeyword.models]);
     const nextSelectedMonitorModels = sortSelectedMonitorModels(nextMonitorModels, [
       ...draftSelectedMonitorModels,
       trimmedDraftKeyword.models

@@ -36,6 +36,7 @@ const OperationSetting = () => {
     QuotaForInviter: 0,
     QuotaForInvitee: 0,
     QuotaRemindThreshold: 0,
+    DefaultChannelMonitorModels: '',
     PreConsumedQuota: 0,
     TopUpLink: '',
     ChatLink: '',
@@ -192,6 +193,9 @@ const OperationSetting = () => {
           }
           if (originInputs['QuotaRemindThreshold'] !== inputs.QuotaRemindThreshold) {
             await updateOption('QuotaRemindThreshold', inputs.QuotaRemindThreshold);
+          }
+          if (originInputs['DefaultChannelMonitorModels'] !== inputs.DefaultChannelMonitorModels) {
+            await updateOption('DefaultChannelMonitorModels', inputs.DefaultChannelMonitorModels);
           }
           break;
         case 'chatlinks':
@@ -707,6 +711,21 @@ const OperationSetting = () => {
               />
             </FormControl>
           </Stack>
+          <FormControl fullWidth>
+            <TextField
+              fullWidth
+              multiline
+              maxRows={12}
+              minRows={5}
+              id="DefaultChannelMonitorModels"
+              label={t('setting_index.operationSettings.monitoringSettings.defaultMonitorModels.label')}
+              value={inputs.DefaultChannelMonitorModels}
+              name="DefaultChannelMonitorModels"
+              onChange={handleTextFieldChange}
+              placeholder={t('setting_index.operationSettings.monitoringSettings.defaultMonitorModels.placeholder')}
+              disabled={loading}
+            />
+          </FormControl>
           <FormControlLabel
             label={t('setting_index.operationSettings.monitoringSettings.automaticDisableChannel')}
             control={

@@ -987,6 +987,10 @@
           "label": "Quota Reminder Threshold",
           "placeholder": "When below this quota, an email will be sent to remind the user"
         },
+        "defaultMonitorModels": {
+          "label": "Default Monitor Models",
+          "placeholder": "One model name per line, commas also supported. Leave empty to use the built-in defaults"
+        },
         "saveMonitoringSettings": "Save Monitoring Settings",
         "title": "Monitoring Settings"
       },

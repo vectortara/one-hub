@@ -978,6 +978,10 @@
           "label": "額度提醒閾值",
           "placeholder": "低於此額度時將發送郵件提醒用戶"
         },
+        "defaultMonitorModels": {
+          "label": "預設監控模型列表",
+          "placeholder": "每行一個模型名稱，支援逗號分隔；留空則使用系統內建預設列表"
+        },
         "saveMonitoringSettings": "保存監控設置",
         "title": "監控設置"
       },

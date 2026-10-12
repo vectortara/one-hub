@@ -11,6 +11,7 @@ const config = {
     UptimePageName: '',
     UserInvoiceMonth: false,
     chat_link: '',
+    default_channel_monitor_models: '',
     display_in_currency: true,
     email_verification: false,
     footer_html: '',

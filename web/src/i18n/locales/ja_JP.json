@@ -976,6 +976,10 @@
           "label": "クォータ通知しきい値",
           "placeholder": "このクォータを下回ると、ユーザーに通知メールが送信されます"
         },
+        "defaultMonitorModels": {
+          "label": "既定の監視モデル一覧",
+          "placeholder": "1行に1モデル名。カンマ区切りも利用できます。空欄の場合は組み込み既定値を使用します"
+        },
         "saveMonitoringSettings": "モニタリング設定を保存",
         "title": "モニタリング設定"
       },

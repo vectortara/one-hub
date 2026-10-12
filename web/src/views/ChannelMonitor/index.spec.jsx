@@ -7,11 +7,16 @@ import ChannelMonitor from './index';
 import SettingMenu from '../../menu-items/setting';
 import MainRoutes from '../../routes/MainRoutes';
 
-const { mockApiGet, mockAxiosPost, mockShowError, mockStoreDispatch } = vi.hoisted(() => ({
+const { mockApiGet, mockAxiosPost, mockShowError, mockStoreDispatch, mockReduxState } = vi.hoisted(() => ({
   mockApiGet: vi.fn(),
   mockAxiosPost: vi.fn(),
   mockShowError: vi.fn(),
-  mockStoreDispatch: vi.fn()
+  mockStoreDispatch: vi.fn(),
+  mockReduxState: {
+    siteInfo: {
+      default_channel_monitor_models: ''
+    }
+  }
 }));
 
 vi.mock('react-i18next', () => ({
@@ -45,6 +50,10 @@ vi.mock('store', () => ({
   store: {
     dispatch: mockStoreDispatch
   }
+}));
+
+vi.mock('react-redux', () => ({
+  useSelector: (selector) => selector(mockReduxState)
 }));
 
 vi.mock('store/actions', () => ({
@@ -140,6 +149,9 @@ describe('ChannelMonitor', () => {
     mockAxiosPost.mockReset();
     mockShowError.mockReset();
     mockStoreDispatch.mockReset();
+    mockReduxState.siteInfo = {
+      default_channel_monitor_models: ''
+    };
 
     mockApiGet.mockImplementation((url) => {
       if (url === '/api/group/') {
@@ -203,6 +215,24 @@ describe('ChannelMonitor', () => {
     ['gpt-5.4', 'gpt-5.5', 'claude-sonnet-4-6', 'claude-sonnet-5', 'gemini-3.5-flash'].forEach((model) => {
       expect(screen.getByRole('button', { name: model }).getAttribute('aria-pressed')).toBe('true');
     });
+  });
+
+  it('loads configured default monitor models from site info and normalizes duplicates', async () => {
+    mockReduxState.siteInfo = {
+      default_channel_monitor_models: 'gpt-custom-a\ngpt-custom-b, claude-custom \ngpt-custom-a'
+    };
+
+    render(<ChannelMonitor />);
+
+    await waitFor(() => {
+      expect(mockApiGet).toHaveBeenCalledTimes(2);
+    });
+
+    ['gpt-custom-a', 'gpt-custom-b', 'claude-custom'].forEach((model) => {
+      expect(screen.getByRole('button', { name: model }).getAttribute('aria-pressed')).toBe('true');
+    });
+
+    expect(screen.queryByRole('button', { name: 'gpt-5.4' })).toBeNull();
   });
 
   it('hides filter_tag control while keeping tag selector visible', async () => {

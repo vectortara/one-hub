@@ -918,6 +918,10 @@
           "label": "额度提醒阈值",
           "placeholder": "低于此额度时将发送邮件提醒用户"
         },
+        "defaultMonitorModels": {
+          "label": "默认监控模型列表",
+          "placeholder": "每行一个模型名称，支持逗号分隔；留空则使用系统内置默认列表"
+        },
         "automaticDisableChannel": "失败时自动禁用通道",
         "automaticEnableChannel": "成功时自动启用通道",
         "saveMonitoringSettings": "保存监控设置"
